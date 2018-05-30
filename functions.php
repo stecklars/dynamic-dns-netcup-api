@@ -46,9 +46,9 @@ function login($customernr, $apikey, $apipassword)
         'action' => 'login',
         'param' =>
             array(
-                'customernumber' => CUSTOMERNR,
-                'apikey' => APIKEY,
-                'apipassword' => APIPASSWORD,
+                'customernumber' => $customernr,
+                'apikey' => $apikey,
+                'apipassword' => $apipassword,
             ),
     );
 
@@ -73,8 +73,8 @@ function logout($customernr, $apikey, $apisessionid)
         'action' => 'logout',
         'param' =>
             array(
-                'customernumber' => CUSTOMERNR,
-                'apikey' => APIKEY,
+                'customernumber' => $customernr,
+                'apikey' => $apikey,
                 'apisessionid' => $apisessionid,
             ),
     );
@@ -84,7 +84,7 @@ function logout($customernr, $apikey, $apisessionid)
     $result = sendRequest($request);
 
     if ($result['status'] === 'success') {
-        return (true);
+        return true;
     }
 
     printf("ERROR: Error while logging out: %s\n\n", $result['longmessage']);

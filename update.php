@@ -47,7 +47,7 @@ if ($infoDnsRecords = infoDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid))
 $hostIDs = array();
 
 foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
-    if ($record['hostname'] == HOST && $record['type'] == "A") {
+    if ($record['hostname'] === HOST && $record['type'] === "A") {
         $hostIDs[] = array(
             'id' => $record['id'],
             'hostname' => $record['hostname'],
@@ -63,7 +63,7 @@ foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
 //If we can't find the zone, exit due to error.
 if (count($hostIDs) === 0) {
     // TODO: Add Host
-    die("Error: Host ".HOST." with an A-Record doesn't exist! Exiting...\n\n");
+    die(sprintf("Error: Host %s with an A-Record doesn't exist! Exiting...\n\n", HOST));
 }
 
 //If the host with A record exists more than one time...
