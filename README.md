@@ -2,7 +2,7 @@
 *This project is not affiliated with the company netcup GmbH. Although it is developed by an employee, it is not an official client by netcup GmbH and was developed in my free time.*
 *netcup is a registered trademark of netcup GmbH, Karlsruhe, Germany.*
 
-**A simple dynamic DNS client written in PHP for use with the netcup domain API.**
+**A simple dynamic DNS client written in PHP for use with the netcup DNS API.**
 
 ## Requirements
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
@@ -22,7 +22,7 @@
 * Support for domain root and wildcard / specific subdomains at the same time
 * Creation of DNS record, if it doesn't already exist
 * Hiding output (quiet option)
-* Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the domain API
+* Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
 * Add fallback API for determining public IP address, in case main API does return invalid / no IP address
 * Probably a lot more :grin: – to be continued...
 
