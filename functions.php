@@ -83,7 +83,7 @@ function logout($customernr, $apikey, $apisessionid)
 
     $result = sendRequest($request);
 
-    if ($result['status'] === 'success') {
+    if ($result['status'] === SUCCESS) {
         return true;
     }
 
@@ -165,7 +165,7 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
 
     $result = sendRequest($request);
 
-    if ($result['status'] == "success") {
+    if ($result['status'] === SUCCESS) {
         return true;
     }
 

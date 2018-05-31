@@ -26,7 +26,7 @@ if (CHANGE_TTL !== true && $infoDnsZone['responsedata']['ttl'] > 300) {
 }
 
 //If user wants it, then we lower TTL, in case it doesn't have correct value
-if (CHANGE_TTL === true && $infoDnsZone['responsedata']['ttl'] !== 300) {
+if (CHANGE_TTL === true && $infoDnsZone['responsedata']['ttl'] !== "300") {
     $infoDnsZone['responsedata']['ttl'] = 300;
 
     if (updateDnsZone(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $infoDnsZone['responsedata'])) {
