@@ -35,7 +35,8 @@ function sendRequest($request)
 }
 
 //Outputs $text to Stdout
-function outputStdout($text) {
+function outputStdout($text)
+{
     global $quiet;
 
     //If quiet option is set, don't output anything on stdout
@@ -46,7 +47,8 @@ function outputStdout($text) {
 }
 
 //Outputs $text to Stderr
-function outputStderr($text) {
+function outputStderr($text)
+{
     fwrite(STDERR, $text);
 }
 
