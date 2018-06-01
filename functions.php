@@ -2,6 +2,16 @@
 
 require_once 'config.php';
 
+//Declare possbile options
+$quiet = false;
+
+//Check passed options
+foreach ($argv as $option) {
+    if ($option === "--quiet") {
+        $quiet = true;
+    }
+}
+
 const SUCCESS = 'success';
 
 // Sends $request to netcup Domain API and returns the result
@@ -24,6 +34,22 @@ function sendRequest($request)
     return $result;
 }
 
+//Outputs $text to Stdout
+function outputStdout($text) {
+    global $quiet;
+
+    //If quiet option is set, don't output anything on stdout
+    if ($quiet === true) {
+        return;
+    }
+    echo $text;
+}
+
+//Outputs $text to Stderr
+function outputStderr($text) {
+    fwrite(STDERR, $text);
+}
+
 //Returns current public IP.
 function getCurrentPublicIP()
 {
@@ -33,9 +59,6 @@ function getCurrentPublicIP()
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         return $publicIP;
     }
-
-    echo("https://api.ipify.org didn't return a valid IPv4 address.\n\n");
-
     return false;
 }
 
@@ -60,15 +83,13 @@ function login($customernr, $apikey, $apipassword)
         return $result['responsedata']['apisessionid'];
     }
 
-    printf("ERROR: Error while logging in: %s \n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while logging in: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }
 
 //Logout of netcup domain API, returns boolean
 function logout($customernr, $apikey, $apisessionid)
 {
-
     $logoutdata = array(
         'action' => 'logout',
         'param' =>
@@ -87,8 +108,7 @@ function logout($customernr, $apikey, $apisessionid)
         return true;
     }
 
-    printf("ERROR: Error while logging out: %s\n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while logging out: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }
 
@@ -114,8 +134,7 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
         return $result;
     }
 
-    printf("Error while getting DNS Zone info: %s\n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while getting DNS Zone info: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }
 
@@ -141,8 +160,7 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
         return $result;
     }
 
-    printf("Error while getting DNS Record info: %s\n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while getting DNS Record info: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }
 
@@ -169,8 +187,7 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
         return true;
     }
 
-    printf("Error while updating DNS Zone: %s\n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while updating DNS Zone: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }
 
@@ -199,7 +216,6 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
         return true;
     }
 
-    printf("Error while updating DNS Records: %s\n\n", $result['longmessage']);
-
+    outputStderr(sprintf("[ERROR] Error while updating DNS Records: %s Exiting.\n\n", $result['longmessage']));
     return false;
 }

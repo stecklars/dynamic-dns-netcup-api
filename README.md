@@ -17,11 +17,11 @@
 * Determines correct public IP address
 * Updating of a specific subdomain, domain root, or subdomain
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
+* Hiding output (quiet option)
 
 ### Missing
 * Support for domain root and wildcard / specific subdomains at the same time
 * Creation of DNS record, if it doesn't already exist
-* Hiding output (quiet option)
 * Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
 * Add fallback API for determining public IP address, in case main API does return invalid / no IP address
 * Probably a lot more :grin: – to be continued...
@@ -34,6 +34,12 @@ Configuration is very simple: Just fill out `config.php` with the required value
 `php update.php`
 
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
+
+### CLI options
+Just add these Options after the command like `php update.php --quiet`
+| option        | function                                             |
+| ------------- |-----------------------------------------------------:|
+| --quiet       | The script won't output normal messages, only errors |
 
 ## Example output
 ```
