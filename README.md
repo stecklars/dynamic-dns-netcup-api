@@ -25,7 +25,7 @@
 * Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
 * Add fallback API for determining public IP address, in case main API does return invalid / no IP address
 * Probably a lot more :grin: – to be continued...
-p
+
 ## Getting started
 ### Configuration
 Configuration is very simple: Just fill out `config.php` with the required values.
