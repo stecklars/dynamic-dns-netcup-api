@@ -14,7 +14,7 @@
 ## Features
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
-* Determines correct public IP address
+* Determines correct public IP address, uses fallback API for determining the IP address, in case main API does return invalid / no IP
 * Updating of a specific subdomain, domain root, or subdomain
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
 * Hiding output (quiet option)
@@ -23,7 +23,6 @@
 * Support for domain root and wildcard / specific subdomains at the same time
 * Creation of DNS record, if it doesn't already exist
 * Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
-* Add fallback API for determining public IP address, in case main API does return invalid / no IP address
 * Probably a lot more :grin: – to be continued...
 
 ## Getting started
