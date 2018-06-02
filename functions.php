@@ -53,7 +53,7 @@ function outputStderr($text)
 }
 
 //Returns current public IP.
-function getCurrentPublicIP()
+function getCurrentPublicIPv4()
 {
     $publicIP = file_get_contents('https://api.ipify.org');
 
@@ -61,6 +61,18 @@ function getCurrentPublicIP()
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         return $publicIP;
     }
+
+    outputStderr("[WARNING] https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org\n\n");
+    //If IP is invalid, try another API
+    //The API adds an empty line, so we remove that with rtrim
+    $publicIP = rtrim(file_get_contents('https://ip4.seeip.org'));
+
+    //Let's check the result of the second API
+    if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return $publicIP;
+    }
+
+    //Still no valid IP?
     return false;
 }
 

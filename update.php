@@ -76,8 +76,8 @@ if (count($hostIDs) > 1) {
 }
 
 //If we couldn't determine a valid public IPv4 address
-if (!$publicIP = getCurrentPublicIP()) {
-    outputStderr("[ERROR] https://api.ipify.org didn't return a valid IPv4 address. Exiting.\n\n");
+if (!$publicIP = getCurrentPublicIPv4()) {
+    outputStderr("[ERROR] Main API and fallback API didn't return a valid IPv4 address. Exiting.\n\n");
     exit(1);
 }
 
