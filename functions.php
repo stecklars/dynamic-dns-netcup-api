@@ -35,7 +35,7 @@ function sendRequest($request)
 }
 
 //Outputs $text to Stdout
-function outputStdout($text)
+function outputStdout($message)
 {
     global $quiet;
 
@@ -43,16 +43,31 @@ function outputStdout($text)
     if ($quiet === true) {
         return;
     }
-    echo $text;
+
+    $date = date("Y/m/d H:i:s O");
+    $output = sprintf("[%s][NOTICE] %s\n", $date, $message);
+    echo $output;
 }
 
-//Outputs $text to Stderr
-function outputStderr($text)
+//Outputs warning to stderr
+function outputWarning($message)
 {
-    fwrite(STDERR, $text);
+    $date = date("Y/m/d H:i:s O");
+    $output = sprintf("[%s][WARNING] %s\n", $date, $message);
+
+    fwrite(STDERR, $output);
 }
 
-//Returns current public IP.
+//Outputs error to Stderr
+function outputStderr($message)
+{
+    $date = date("Y/m/d H:i:s O");
+    $output = sprintf("[%s][ERROR] %s\n", $date, $message);
+
+    fwrite(STDERR, $output);
+}
+
+//Returns current public IPv4 address.
 function getCurrentPublicIPv4()
 {
     $publicIP = file_get_contents('https://api.ipify.org');
@@ -62,7 +77,7 @@ function getCurrentPublicIPv4()
         return $publicIP;
     }
 
-    outputStderr("[WARNING] https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org\n\n");
+    outputWarning("https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org");
     //If IP is invalid, try another API
     //The API adds an empty line, so we remove that with rtrim
     $publicIP = rtrim(file_get_contents('https://ip4.seeip.org'));
@@ -97,7 +112,7 @@ function login($customernr, $apikey, $apipassword)
         return $result['responsedata']['apisessionid'];
     }
 
-    outputStderr(sprintf("[ERROR] Error while logging in: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while logging in: %s Exiting.", $result['longmessage']));
     return false;
 }
 
@@ -122,7 +137,7 @@ function logout($customernr, $apikey, $apisessionid)
         return true;
     }
 
-    outputStderr(sprintf("[ERROR] Error while logging out: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while logging out: %s Exiting.", $result['longmessage']));
     return false;
 }
 
@@ -148,7 +163,7 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
         return $result;
     }
 
-    outputStderr(sprintf("[ERROR] Error while getting DNS Zone info: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while getting DNS Zone info: %s Exiting.", $result['longmessage']));
     return false;
 }
 
@@ -174,7 +189,7 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
         return $result;
     }
 
-    outputStderr(sprintf("[ERROR] Error while getting DNS Record info: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while getting DNS Record info: %s Exiting.", $result['longmessage']));
     return false;
 }
 
@@ -201,7 +216,7 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
         return true;
     }
 
-    outputStderr(sprintf("[ERROR] Error while updating DNS Zone: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while updating DNS Zone: %s Exiting.", $result['longmessage']));
     return false;
 }
 
@@ -230,6 +245,6 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
         return true;
     }
 
-    outputStderr(sprintf("[ERROR] Error while updating DNS Records: %s Exiting.\n\n", $result['longmessage']));
+    outputStderr(sprintf("Error while updating DNS Records: %s Exiting.", $result['longmessage']));
     return false;
 }

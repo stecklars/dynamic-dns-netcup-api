@@ -3,27 +3,27 @@
 //Load necessary functions
 require_once 'functions.php';
 
-outputStdout("===============================================================\n");
-outputStdout("Running dynamic DNS client for netcup 1.0 at ".date("Y/m/d H:i:s")."\n");
-outputStdout("This script is not affiliated with netcup.\n");
-outputStdout("===============================================================\n\n");
+outputStdout("=============================================");
+outputStdout("Running dynamic DNS client for netcup 1.0");
+outputStdout("This script is not affiliated with netcup.");
+outputStdout("=============================================\n");
 
 // Login
 if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
-    outputStdout("Logged in successfully!\n\n");
+    outputStdout("Logged in successfully!");
 } else {
     exit(1);
 }
 
 // Let's get infos about the DNS zone
 if ($infoDnsZone = infoDnsZone(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid)) {
-    outputStdout("Successfully received Domain info.\n\n");
+    outputStdout("Successfully received Domain info.");
 } else {
     exit(1);
 }
 //TTL Warning
 if (CHANGE_TTL !== true && $infoDnsZone['responsedata']['ttl'] > 300) {
-    outputStdout("TTL is higher than 300 seconds - this is not optimal for dynamic DNS, since DNS updates will take a long time. Ideally, change TTL to lower value. You may set CHANGE_TTL to True in config.php,\nin which case TTL will be set to 300 seconds automatically.\n\n");
+    outputStdout("TTL is higher than 300 seconds - this is not optimal for dynamic DNS, since DNS updates will take a long time. Ideally, change TTL to lower value. You may set CHANGE_TTL to True in config.php, in which case TTL will be set to 300 seconds automatically.");
 }
 
 //If user wants it, then we lower TTL, in case it doesn't have correct value
@@ -31,15 +31,15 @@ if (CHANGE_TTL === true && $infoDnsZone['responsedata']['ttl'] !== "300") {
     $infoDnsZone['responsedata']['ttl'] = 300;
 
     if (updateDnsZone(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $infoDnsZone['responsedata'])) {
-        outputStdout("Lowered TTL to 300 seconds successfully.\n\n");
+        outputStdout("Lowered TTL to 300 seconds successfully.");
     } else {
-        outputStderr("Failed to set TTL... Continuing.\n\n");
+        outputStderr("Failed to set TTL... Continuing.");
     }
 }
 
 //Let's get the DNS record data.
 if ($infoDnsRecords = infoDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid)) {
-    outputStdout("Successfully received DNS record data.\n\n");
+    outputStdout("Successfully received DNS record data.");
 } else {
     exit(1);
 }
@@ -64,20 +64,20 @@ foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
 //If we can't find the zone, exit due to error.
 if (count($hostIDs) === 0) {
     // TODO: Add Host
-    outputStderr((sprintf("[ERROR] Host %s with an A-Record doesn't exist! Exiting.\n\n", HOST)));
+    outputStderr((sprintf("[ERROR] Host %s with an A-Record doesn't exist! Exiting.", HOST)));
     exit(1);
 }
 
 //If the host with A record exists more than one time...
 if (count($hostIDs) > 1) {
-    outputStderr(sprintf("[ERROR] Found multiple A-Records for the Host %s\n\n", HOST));
-    outputStderr(("Please specify a host for which only a single A-Record exists in config.php. Exiting.\n\n"));
+    outputStderr(sprintf("[ERROR] Found multiple A-Records for the Host %s", HOST));
+    outputStderr(("Please specify a host for which only a single A-Record exists in config.php. Exiting."));
     exit(1);
 }
 
 //If we couldn't determine a valid public IPv4 address
 if (!$publicIP = getCurrentPublicIPv4()) {
-    outputStderr("[ERROR] Main API and fallback API didn't return a valid IPv4 address. Exiting.\n\n");
+    outputStderr("[ERROR] Main API and fallback API didn't return a valid IPv4 address. Exiting.");
     exit(1);
 }
 
@@ -88,10 +88,10 @@ foreach ($hostIDs as $record) {
     if ($record['destination'] !== $publicIP) {
         //Yes, it has changed.
         $ipchange = true;
-        outputStdout(sprintf("IP has changed\nBefore: %s\nNow: %s\n\n", $record['destination'], $publicIP));
+        outputStdout(sprintf("IP has changed. Before: %s; Now: %s", $record['destination'], $publicIP));
     } else {
         //No, it hasn't changed.
-        outputStdout("IP hasn't changed. Current IP: ".$publicIP."\n\n");
+        outputStdout("IP hasn't changed. Current IP: ".$publicIP."");
     }
 }
 
@@ -100,7 +100,7 @@ if ($ipchange === true) {
     $hostIDs[0]['destination'] = $publicIP;
     //Update the record
     if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $hostIDs)) {
-        outputStdout("IP address updated successfully!\n\n");
+        outputStdout("IP address updated successfully!");
     } else {
         exit(1);
     }
@@ -108,7 +108,7 @@ if ($ipchange === true) {
 
 //Logout
 if (logout(CUSTOMERNR, APIKEY, $apisessionid)) {
-    outputStdout("Logged out successfully!\n\n");
+    outputStdout("Logged out successfully!");
 } else {
     exit(1);
 }

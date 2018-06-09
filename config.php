@@ -11,7 +11,7 @@ define('DOMAIN', 'mydomain.com');
 //Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. Currently, the DNS record should already exist before running the script (it can't create the record yet)
 define('HOST', 'server');
 
-//If set to True, this will change TTL to 300 seconds on every run if necessary.
+//If set to true, this will change TTL to 300 seconds on every run if necessary.
 define('CHANGE_TTL', true);
 
 // Use netcup DNS REST-API
