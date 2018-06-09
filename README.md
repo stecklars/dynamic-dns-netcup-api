@@ -23,6 +23,7 @@
 * Support for domain root and wildcard / specific subdomains at the same time
 * Creation of DNS record, if it doesn't already exist
 * Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
+* IPv6 Support
 * Probably a lot more :grin: – to be continued...
 
 ## Getting started
