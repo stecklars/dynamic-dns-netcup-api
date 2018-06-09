@@ -45,47 +45,30 @@ Just add these Options after the command like `php update.php --quiet`
 ## Example output
 ```
 $ php update.php
-===============================================================
-Running dynamic DNS client for netcup 1.0 at 2018/05/30 01:14:43
-This script is not affiliated with netcup.
-===============================================================
+[2018/06/10 01:16:28 +0200][NOTICE] =============================================
+[2018/06/10 01:16:28 +0200][NOTICE] Running dynamic DNS client for netcup 1.0
+[2018/06/10 01:16:28 +0200][NOTICE] This script is not affiliated with netcup.
+[2018/06/10 01:16:28 +0200][NOTICE] =============================================
 
-Logged in successfully!
-
-Successfully received Domain info.
-
-Lowered TTL to 300 seconds successfully.
-
-Successfully received DNS record data.
-
-IP has changed
-Before: 1.2.3.4
-Now: 5.6.7.8
-
-IP address updated successfully!
-
-Logged out successfully!
-
-
+[2018/06/10 01:16:28 +0200][NOTICE] Logged in successfully!
+[2018/06/10 01:16:29 +0200][NOTICE] Successfully received Domain info.
+[2018/06/10 01:16:29 +0200][NOTICE] Successfully received DNS record data.
+[2018/06/10 01:16:30 +0200][NOTICE] IP has changed. Before: 1.2.3.4; Now: 5.6.7.8
+[2018/06/10 01:16:30 +0200][NOTICE] IP address updated successfully!
+[2018/06/10 01:16:30 +0200][NOTICE] Logged out successfully!
 ```
 ```
 $ php update.php
-===============================================================
-Running dynamic DNS client for netcup 1.0 at 2018/05/30 01:19:43
-This script is not affiliated with netcup.
-===============================================================
+[2018/06/10 01:17:11 +0200][NOTICE] =============================================
+[2018/06/10 01:17:11 +0200][NOTICE] Running dynamic DNS client for netcup 1.0
+[2018/06/10 01:17:11 +0200][NOTICE] This script is not affiliated with netcup.
+[2018/06/10 01:17:11 +0200][NOTICE] =============================================
 
-Logged in successfully!
-
-Successfully received Domain info.
-
-Successfully received DNS record data.
-
-IP hasn't changed. Current IP: 5.6.7.8
-
-Logged out successfully!
-
-
+[2018/06/10 01:17:12 +0200][NOTICE] Logged in successfully!
+[2018/06/10 01:17:12 +0200][NOTICE] Successfully received Domain info.
+[2018/06/10 01:17:12 +0200][NOTICE] Successfully received DNS record data.
+[2018/06/10 01:17:13 +0200][NOTICE] IP hasn't changed. Current IP: 5.6.7.8
+[2018/06/10 01:17:13 +0200][NOTICE] Logged out successfully!
 ```
 
 If you have ideas on how to improve this script, please don't hesitate to create an issue or provide me with a pull request. Thank you!
