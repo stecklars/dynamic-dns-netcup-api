@@ -45,9 +45,9 @@ You should probably run this script every few minutes, so that your IP is update
 ### CLI options
 Just add these Options after the command like `php update.php --quiet`
 
-| option        | function                                             |
-| ------------- |-----------------------------------------------------:|
-| --quiet       | The script won't output normal messages, only errors |
+| option        | function                                                  |
+| ------------- |----------------------------------------------------------:|
+| --quiet       | The script won't output notices, only errors and warnings |
 
 ## Example outputs
 ```
