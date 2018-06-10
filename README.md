@@ -67,7 +67,6 @@ $ php update.php
 ```
 ```
 $ php update.php
-$ php update.php
 [2018/06/10 05:03:50 +0200][NOTICE] =============================================
 [2018/06/10 05:03:50 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
 [2018/06/10 05:03:50 +0200][NOTICE] This script is not affiliated with netcup.
