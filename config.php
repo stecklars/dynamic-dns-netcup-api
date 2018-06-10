@@ -8,7 +8,7 @@ define('APIPASSWORD', 'abcdefghijklmnopqrstuvwxyz');
 
 // Enter Domain which should be used for dynamic DNS
 define('DOMAIN', 'mydomain.com');
-//Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. Currently, the DNS record should already exist before running the script (it can't create the record yet)
+//Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
 define('HOST', 'server');
 
 //If set to true, this will change TTL to 300 seconds on every run if necessary.

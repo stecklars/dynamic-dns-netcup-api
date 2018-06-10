@@ -44,12 +44,12 @@ if ($infoDnsRecords = infoDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid))
     exit(1);
 }
 
-//Find the ID of the Host(s)
-$hostIDs = array();
+//Find the host defined in config.php
+$foundHosts = array();
 
 foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
     if ($record['hostname'] === HOST && $record['type'] === "A") {
-        $hostIDs[] = array(
+        $foundHosts[] = array(
             'id' => $record['id'],
             'hostname' => $record['hostname'],
             'type' => $record['type'],
@@ -61,30 +61,32 @@ foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
     }
 }
 
-//If we can't find the zone, exit due to error.
-if (count($hostIDs) === 0) {
-    // TODO: Add Host
-    outputStderr((sprintf("[ERROR] Host %s with an A-Record doesn't exist! Exiting.", HOST)));
-    exit(1);
+//If we can't find the host, create it.
+if (count($foundHosts) === 0) {
+    outputStdout(sprintf("Host %s doesn't exist, creating necessary DNS-Record.", HOST));
+    $foundHosts[] = array(
+        'hostname' => HOST,
+        'type' => 'A',
+        'destination' => 'newly created Record',
+    );
 }
 
 //If the host with A record exists more than one time...
-if (count($hostIDs) > 1) {
-    outputStderr(sprintf("[ERROR] Found multiple A-Records for the Host %s", HOST));
-    outputStderr(("Please specify a host for which only a single A-Record exists in config.php. Exiting."));
+if (count($foundHosts) > 1) {
+    outputStderr(sprintf("Found multiple A-Records for the Host %s – Please specify a host for which only a single A-Record exists in config.php. Exiting.", HOST));
     exit(1);
 }
 
 //If we couldn't determine a valid public IPv4 address
 if (!$publicIP = getCurrentPublicIPv4()) {
-    outputStderr("[ERROR] Main API and fallback API didn't return a valid IPv4 address. Exiting.");
+    outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
     exit(1);
 }
 
 $ipchange = false;
 
 //Has the IP changed?
-foreach ($hostIDs as $record) {
+foreach ($foundHosts as $record) {
     if ($record['destination'] !== $publicIP) {
         //Yes, it has changed.
         $ipchange = true;
@@ -97,9 +99,9 @@ foreach ($hostIDs as $record) {
 
 //Yes, it has changed.
 if ($ipchange === true) {
-    $hostIDs[0]['destination'] = $publicIP;
+    $foundHosts[0]['destination'] = $publicIP;
     //Update the record
-    if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $hostIDs)) {
+    if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHosts)) {
         outputStdout("IP address updated successfully!");
     } else {
         exit(1);
