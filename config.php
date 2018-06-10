@@ -11,6 +11,10 @@ define('DOMAIN', 'mydomain.com');
 //Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
 define('HOST', 'server');
 
+//If set to true, the script will check for your public IPv6 address too and add it as an AAAA-Record / change an existing AAAA-Record for the host.
+//Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
+define('USE_IPV6', false);
+
 //If set to true, this will change TTL to 300 seconds on every run if necessary.
 define('CHANGE_TTL', true);
 

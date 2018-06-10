@@ -15,6 +15,7 @@
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
 * Determines correct public IP address, uses fallback API for determining the IP address, in case main API does return invalid / no IP
+* IPv6 Support
 * Updating of a specific subdomain, domain root, or subdomain
 * Creation of DNS record, if it doesn't already exist
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
@@ -23,12 +24,11 @@
 ### Missing
 * Support for domain root and wildcard / specific subdomains at the same time
 * Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
-* IPv6 Support
 * Probably a lot more :grin: – to be continued...
 
 ## Getting started
 ### Configuration
-Configuration is very simple: Just fill out `config.php` with the required values.
+Configuration is very simple: Just fill out `config.php` with the required values. The options are explained in there.
 
 ### How to use
 `php update.php`
