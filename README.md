@@ -27,6 +27,12 @@
 * Probably a lot more :grin: – to be continued...
 
 ## Getting started
+### Download
+Download the [latest version] (https://github.com/stecklars/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
+`$ git clone https://github.com/stecklars/dynamic-dns-netcup-api.git`
+
+I'm always trying to keep the master branch stable.
+
 ### Configuration
 Configuration is very simple: Just fill out `config.php` with the required values. The options are explained in there.
 
