@@ -4,7 +4,7 @@
 require_once 'functions.php';
 
 outputStdout("=============================================");
-outputStdout("Running dynamic DNS client for netcup 1.0");
+outputStdout("Running dynamic DNS client for netcup 2.0");
 outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 

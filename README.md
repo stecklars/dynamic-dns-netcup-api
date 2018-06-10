@@ -42,33 +42,63 @@ Just add these Options after the command like `php update.php --quiet`
 | ------------- |-----------------------------------------------------:|
 | --quiet       | The script won't output normal messages, only errors |
 
-## Example output
+## Example outputs
 ```
 $ php update.php
-[2018/06/10 01:16:28 +0200][NOTICE] =============================================
-[2018/06/10 01:16:28 +0200][NOTICE] Running dynamic DNS client for netcup 1.0
-[2018/06/10 01:16:28 +0200][NOTICE] This script is not affiliated with netcup.
-[2018/06/10 01:16:28 +0200][NOTICE] =============================================
+[2018/06/10 05:03:40 +0200][NOTICE] =============================================
+[2018/06/10 05:03:40 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
+[2018/06/10 05:03:40 +0200][NOTICE] This script is not affiliated with netcup.
+[2018/06/10 05:03:40 +0200][NOTICE] =============================================
 
-[2018/06/10 01:16:28 +0200][NOTICE] Logged in successfully!
-[2018/06/10 01:16:29 +0200][NOTICE] Successfully received Domain info.
-[2018/06/10 01:16:29 +0200][NOTICE] Successfully received DNS record data.
-[2018/06/10 01:16:30 +0200][NOTICE] IP has changed. Before: 1.2.3.4; Now: 5.6.7.8
-[2018/06/10 01:16:30 +0200][NOTICE] IP address updated successfully!
-[2018/06/10 01:16:30 +0200][NOTICE] Logged out successfully!
+[2018/06/10 05:03:40 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
+
+[2018/06/10 05:03:41 +0200][NOTICE] Logged in successfully!
+[2018/06/10 05:03:41 +0200][NOTICE] Successfully received Domain info.
+[2018/06/10 05:03:41 +0200][NOTICE] Lowered TTL to 300 seconds successfully.
+[2018/06/10 05:03:42 +0200][NOTICE] Successfully received DNS record data.
+[2018/06/10 05:03:42 +0200][NOTICE] A record for host @ doesn't exist, creating necessary DNS record.
+[2018/06/10 05:03:42 +0200][NOTICE] IPv4 address has changed. Before: newly created Record; Now: 5.6.7.8
+[2018/06/10 05:03:44 +0200][NOTICE] IPv4 address updated successfully!
+[2018/06/10 05:03:44 +0200][NOTICE] AAAA record for host @ doesn't exist, creating necessary DNS record.
+[2018/06/10 05:03:44 +0200][NOTICE] IPv6 address has changed. Before: newly created Record; Now: 2001:db8:85a3:0:0:8a2e:370:7334
+[2018/06/10 05:03:46 +0200][NOTICE] IPv6 address updated successfully!
+[2018/06/10 05:03:46 +0200][NOTICE] Logged out successfully!
+
 ```
 ```
 $ php update.php
-[2018/06/10 01:17:11 +0200][NOTICE] =============================================
-[2018/06/10 01:17:11 +0200][NOTICE] Running dynamic DNS client for netcup 1.0
-[2018/06/10 01:17:11 +0200][NOTICE] This script is not affiliated with netcup.
-[2018/06/10 01:17:11 +0200][NOTICE] =============================================
+$ php update.php
+[2018/06/10 05:03:50 +0200][NOTICE] =============================================
+[2018/06/10 05:03:50 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
+[2018/06/10 05:03:50 +0200][NOTICE] This script is not affiliated with netcup.
+[2018/06/10 05:03:50 +0200][NOTICE] =============================================
 
-[2018/06/10 01:17:12 +0200][NOTICE] Logged in successfully!
-[2018/06/10 01:17:12 +0200][NOTICE] Successfully received Domain info.
-[2018/06/10 01:17:12 +0200][NOTICE] Successfully received DNS record data.
-[2018/06/10 01:17:13 +0200][NOTICE] IP hasn't changed. Current IP: 5.6.7.8
-[2018/06/10 01:17:13 +0200][NOTICE] Logged out successfully!
+[2018/06/10 05:03:50 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
+
+[2018/06/10 05:03:50 +0200][NOTICE] Logged in successfully!
+[2018/06/10 05:03:51 +0200][NOTICE] Successfully received Domain info.
+[2018/06/10 05:03:51 +0200][NOTICE] Successfully received DNS record data.
+[2018/06/10 05:03:52 +0200][NOTICE] IPv4 address hasn't changed. Current IPv4 address: 5.6.7.8
+[2018/06/10 05:03:52 +0200][NOTICE] IPv6 address hasn't changed. Current IPv6 address: 2001:db8:85a3:0:0:8a2e:370:7334
+[2018/06/10 05:03:52 +0200][NOTICE] Logged out successfully!
+```
+```
+$ php update.php
+[2018/06/10 05:08:22 +0200][NOTICE] =============================================
+[2018/06/10 05:08:22 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
+[2018/06/10 05:08:22 +0200][NOTICE] This script is not affiliated with netcup.
+[2018/06/10 05:08:22 +0200][NOTICE] =============================================
+
+[2018/06/10 05:08:22 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
+
+[2018/06/10 05:08:22 +0200][NOTICE] Logged in successfully!
+[2018/06/10 05:08:22 +0200][NOTICE] Successfully received Domain info.
+[2018/06/10 05:08:23 +0200][NOTICE] Successfully received DNS record data.
+[2018/06/10 05:08:23 +0200][NOTICE] IPv4 address has changed. Before: 5.6.7.8; Now: 1.2.3.4
+[2018/06/10 05:08:24 +0200][NOTICE] IPv4 address updated successfully!
+[2018/06/10 05:08:24 +0200][NOTICE] IPv6 address has changed. Before: 2001:db8:85a3:0:0:8a2e:370:7334; Now: 2001:db8:85a3:0:0:8a2e:370:5123
+[2018/06/10 05:08:24 +0200][NOTICE] IPv6 address updated successfully!
+[2018/06/10 05:08:25 +0200][NOTICE] Logged out successfully!
 ```
 
 If you have ideas on how to improve this script, please don't hesitate to create an issue or provide me with a pull request. Thank you!
