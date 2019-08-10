@@ -94,6 +94,15 @@ function getCurrentPublicIPv4()
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
+    // get public ipv6 from device
+    $publicIP = shell_exec("ip -6 addr | awk '{print $2}' | grep -P '^(?!fd)^(?!fe80)^(?!fc)[[:alnum:]]{4}:.*/64' | cut -d '/' -f1 | head -1 | tr -d '\n'");
+
+    if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        return $publicIP;
+    }
+
+    outputWarning("device didn't return a valid IPv6 address.");
+
     $publicIP = rtrim(file_get_contents('https://ip6.seeip.org'));
 
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
@@ -101,6 +110,7 @@ function getCurrentPublicIPv6()
     }
 
     outputWarning("https://ip6.seeip.org didn't return a valid IPv6 address.");
+
     //If IP is invalid, try another API
     $publicIP = rtrim(file_get_contents('https://v6.ident.me/'));
 
