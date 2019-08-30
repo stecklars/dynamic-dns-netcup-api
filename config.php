@@ -18,8 +18,15 @@ define('USE_IPV4', true);
 //Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
 define('USE_IPV6', false);
 
+//Required if using IPv6: The interface to get the IPv6 address from
+define('IPV6_INTERFACE', 'eth0');
+
+//Shall only IPv6 addresses be set in the AAAA record which have a static EUI-64-Identifier (no privacy extensions)?
+define('NO_IPV6_PRIVACY_EXTENSIONS', true);
+
 //If set to true, this will change TTL to 300 seconds on every run if necessary.
 define('CHANGE_TTL', true);
 
 // Use netcup DNS REST-API
 define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');
+?>
