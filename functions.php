@@ -126,6 +126,35 @@ function getCurrentPublicIPv4()
     return false;
 }
 
+function getCurrentPublicIPv4FromFritzBox($fritzboxadress)
+{
+    $url = 'http://'.$fritzboxadress.':49000/igdupnp/control/WANIPConn1';
+    $data = "<?xml version='1.0' encoding='utf-8'?> <s:Envelope s:encodingStyle='http://schemas.xmlsoap.org/soap/encoding/' xmlns:s='http://schemas.xmlsoap.org/soap/envelope/'> <s:Body> <u:GetExternalIPAddress xmlns:u='urn:schemas-upnp-org:service:WANIPConnection:1' /> </s:Body> </s:Envelope>";
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                            'Content-Type: text/xml',
+                            'charset="utf-8"',
+                            'SoapAction:urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress'
+                            ));
+
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $server_output = curl_exec($ch);
+    curl_close ($ch);
+    preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $server_output, $match);
+
+    if (!empty($match)) {
+        return $match[1][0];
+    }
+    else {
+        //fallback to ipify
+        outputWarning("Cant get public IP from FritzBox. Fallback to ipify.");
+        return getCurrentPublicIPv4();
+    }
+}
+
 function ipv6_to_binary($ip) {
     $result = '';
     foreach (unpack('C*', inet_pton($ip)) as $octet) {

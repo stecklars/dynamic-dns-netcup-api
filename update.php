@@ -23,7 +23,7 @@ $hosts = explode (",", HOST);
 
 if (USE_IPV4 === true) {
 	// get public IPv4 address
-	$publicIPv4 = getCurrentPublicIPv4();
+	$publicIPv4 = USE_FRITZBOX ? getCurrentPublicIPv4FromFritzBox(FRITZBOX_IP) : getCurrentPublicIPv4();
 
 	//If we couldn't determine a valid public IPv4 address exit
 	if (!$publicIPv4) {
