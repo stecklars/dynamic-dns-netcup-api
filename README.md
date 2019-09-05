@@ -14,16 +14,16 @@
 ## Features
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
-* Determines correct public IP address, uses fallback API for determining the IP address, in case main API does return invalid / no IP
+* Determines correct public IP address. Using local Adapter, local FritzBox and fallback API for determining the IP address, in case main API does return invalid / no IP
+* Caching the IP provided to netcup DNS to avoid unnecessary API calls
 * IPv6 Support
-* Updating of a specific subdomain, domain root, or subdomain
+* Updating of a specific subdomain, domain root, or multiple subdomains
 * Creation of DNS record, if it doesn't already exist
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
 * Hiding output (quiet option)
 
 ### Missing
-* Support for domain root and wildcard / specific subdomains at the same time
-* Caching the IP provided to netcup DNS, to avoid running into (currently not existing) rate limits in the DNS API
+* Support for domain root and wildcard
 * Probably a lot more :grin: – to be continued...
 
 ## Getting started

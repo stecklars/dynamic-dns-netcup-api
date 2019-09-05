@@ -1,6 +1,9 @@
 <?php
 
+//Constants
 require_once 'config.php';
+const SUCCESS = 'success';
+const IP_CACHE_FILE = '/ipcache';
 
 //Declare possbile options
 $quiet = false;
@@ -12,10 +15,10 @@ foreach ($argv as $option) {
     }
 }
 
-const SUCCESS = 'success';
 
-const IP_CACHE_FILE = '/ipcache';
-
+/**
+ * Clear IP Cache
+ */
 function clearIPCache()
 {
     if (file_exists(sys_get_temp_dir().IP_CACHE_FILE)) {
@@ -23,6 +26,10 @@ function clearIPCache()
     }
 }
 
+/**
+ * Get cached IPs from temp file
+ * @return Array or false if it doesn't exists
+ */
 function getIPCache()
 {
     // check if cache file exists
@@ -38,18 +45,25 @@ function getIPCache()
         return false;
     }
 }
+
+/**
+ * Save passed IPs to temp file
+ */
 function setIPCache($publicIPv4, $publicIPv6)
 {
     $ipcache = [
-    "ipv4" => $publicIPv4,
-    "ipv6" => $publicIPv6,
-    "timestamp" => date('Y-m-d H:i:s', time()),
-     ];
+        "ipv4" => $publicIPv4,
+        "ipv6" => $publicIPv6,
+        "timestamp" => date('Y-m-d H:i:s', time()),
+    ];
 
     file_put_contents(sys_get_temp_dir().IP_CACHE_FILE, json_encode($ipcache));
 }
 
-// Sends $request to netcup Domain API and returns the result
+/**
+ * Sends request to netcup Domain API and returns the result
+ * @param request Request
+ */
 function sendRequest($request)
 {
     $ch = curl_init(APIURL);
@@ -69,7 +83,10 @@ function sendRequest($request)
     return $result;
 }
 
-//Outputs $text to Stdout
+/**
+ * Output passed string
+ * @param message Message to output
+ */
 function outputStdout($message)
 {
     global $quiet;
@@ -84,7 +101,10 @@ function outputStdout($message)
     echo $output;
 }
 
-//Outputs warning to stderr
+/**
+ * Outputs warning to stderr
+ * @param message Warning to output
+ */
 function outputWarning($message)
 {
     $date = date("Y/m/d H:i:s O");
@@ -93,7 +113,11 @@ function outputWarning($message)
     fwrite(STDERR, $output);
 }
 
-//Outputs error to Stderr
+
+/**
+ * Outputs error to stderr
+ * @param message Error to output
+ */
 function outputStderr($message)
 {
     $date = date("Y/m/d H:i:s O");
@@ -102,17 +126,21 @@ function outputStderr($message)
     fwrite(STDERR, $output);
 }
 
-//Returns current public IPv4 address.
+/**
+ * Get public IPv4 from ipify.org
+ * @return String Current public IPv4 address or false if no ip found
+ */
 function getCurrentPublicIPv4()
 {    
     $publicIP = rtrim(file_get_contents('https://api.ipify.org'));
 
-    //Let's check that this is really a IPv4 address, just in case...
+    //Let's check that this is really an IPv4 address, just in case...
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
         return $publicIP;
     }
 
     outputWarning("https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org");
+
     //If IP is invalid, try another API
     //The API adds an empty line, so we remove that with rtrim
     $publicIP = rtrim(file_get_contents('https://ip4.seeip.org'));
@@ -126,35 +154,48 @@ function getCurrentPublicIPv4()
     return false;
 }
 
+/**
+ * Using UPnP to get public IPv4 from local FritzBox
+ * @param fritzboxadress Adress to FritzBox
+ * @return String current public IPv4 address or false if no ip found
+ */
 function getCurrentPublicIPv4FromFritzBox($fritzboxadress)
 {
-    $url = 'http://'.$fritzboxadress.':49000/igdupnp/control/WANIPConn1';
     $data = "<?xml version='1.0' encoding='utf-8'?> <s:Envelope s:encodingStyle='http://schemas.xmlsoap.org/soap/encoding/' xmlns:s='http://schemas.xmlsoap.org/soap/envelope/'> <s:Body> <u:GetExternalIPAddress xmlns:u='urn:schemas-upnp-org:service:WANIPConnection:1' /> </s:Body> </s:Envelope>";
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                            'Content-Type: text/xml',
-                            'charset="utf-8"',
-                            'SoapAction:urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress'
-                            ));
 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $server_output = curl_exec($ch);
+    $ch = curl_init('http://'.$fritzboxadress.':49000/igdupnp/control/WANIPConn1');
+    $curlOptions = array(
+        CURLOPT_POST => 1,
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_HTTPHEADER => array(
+                                'Content-Type: text/xml',
+                                'charset="utf-8"',
+                                'SoapAction:urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress'
+                                ),
+        CURLOPT_POSTFIELDS => $data,
+    );
+    curl_setopt_array($ch, $curlOptions);
+
+    $result = curl_exec($ch);
     curl_close ($ch);
-    preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $server_output, $match);
+
+    //search for IPv4 in result
+    preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $result, $match);
 
     if (!empty($match)) {
         return $match[1][0];
     }
     else {
         //fallback to ipify
-        outputWarning("Cant get public IP from FritzBox. Fallback to ipify.");
+        outputWarning("Can't get public IP from FritzBox at ".$fritzboxadress.". Fallback to ipify.");
         return getCurrentPublicIPv4();
     }
 }
 
+/**
+ * Convert IPv6 to binary
+ * @param ip IPv6
+ */
 function ipv6_to_binary($ip) {
     $result = '';
     foreach (unpack('C*', inet_pton($ip)) as $octet) {
@@ -163,7 +204,10 @@ function ipv6_to_binary($ip) {
    return $result;
 }
 
-//Returns current public IPv6 address
+/**
+ * Returns current public IPv6 address
+ * @return String Current public IPv6 address or false if no ip found
+ */
 function getCurrentPublicIPv6()
 {
     $ipv6addresses = preg_split("/((\r?\n)|(\r\n?))/", shell_exec("ip -6 addr show ".IPV6_INTERFACE." | grep 'scope' | grep -Po '(?<=inet6 )[\da-z:]+'"));
@@ -203,7 +247,14 @@ function getCurrentPublicIPv6()
     return false;
 }
 
-//Login into netcup domain API and returns Apisessionid
+/
+/**
+ * Login into netcup domain API 
+ * @param customernr Netcup Customer Number
+ * @param apikey Api Key for Netcup domain Api
+ * @param apipassword Api Password for Netcup domain Api
+ * @return String Apisessionid
+ */
 function login($customernr, $apikey, $apipassword)
 {
     $logindata = array(
@@ -228,7 +279,13 @@ function login($customernr, $apikey, $apipassword)
     return false;
 }
 
-//Logout of netcup domain API, returns boolean
+/**
+ * Logout of netcup domain API
+ * @param customernr Netcup Customer Number
+ * @param apikey Api Key for Netcup domain Api
+ * @param apisessionid Api Session ID
+ * @return Boolean for success
+ */
 function logout($customernr, $apikey, $apisessionid)
 {
     $logoutdata = array(
@@ -253,7 +310,13 @@ function logout($customernr, $apikey, $apisessionid)
     return false;
 }
 
-//Get info about dns zone from netcup domain API, returns result
+/**
+ * Get info about dns zone from netcup domain API
+ * @param domainname Domain Name
+ * @param apikey Api Key for Netcup domain Api
+ * @param apisessionid Api Session ID
+ * @return Array Result of Request or false
+ */
 function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
 {
     $infoDnsZoneData = array(
@@ -279,7 +342,14 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
     return false;
 }
 
-//Get info about dns records from netcup domain API, returns result
+
+/**
+ * Get info about dns records from netcup domain API
+ * @param domainname Domain Name
+ * @param customernr Netcup Customer Number
+ * @param apikey Api Key for Netcup domain Api
+ * @return Array Result of Request or false
+ */
 function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
 {
     $infoDnsRecordsData = array(
@@ -305,7 +375,15 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
     return false;
 }
 
-//Updates DNS Zone using the netcup domain API and returns boolean
+/**
+ * Updates DNS Zone using the netcup domain API
+ * @param domainname Domain Name
+ * @param customernr Netcup Customer Number
+ * @param apikey Api Key for Netcup domain Api
+ * @param apisessionid Api Session ID
+ * @param $dnszone DNS Zone to update
+ * @return Boolean for success
+ */
 function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszone)
 {
     $updateDnsZoneData = array(
@@ -332,7 +410,15 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
     return false;
 }
 
-//Updates DNS records using the netcup domain API and returns boolean
+/**
+ * Updates DNS records using the netcup domain API
+ * @param domainname Domain Name
+ * @param customernr Netcup Customer Number
+ * @param apikey Api Key for Netcup domain Api
+ * @param apisessionid Api Session ID
+ * @param dnsrecords DNS Record to update
+ * @return Boolean for success
+ */
 function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dnsrecords)
 {
     $updateDnsZoneData = array(
