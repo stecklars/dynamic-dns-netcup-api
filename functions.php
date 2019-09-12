@@ -147,7 +147,7 @@ function getCurrentPublicIPv6()
     }
 
     if (sizeof($ipv6addresses) === 1) {
-        return($ipv6addresses[0]);
+	return($ipv6addresses[array_keys($ipv6addresses)[0]]);
     } elseif (sizeof($ipv6addresses) > 1) {
         return($ipv6addresses);
     } else {
