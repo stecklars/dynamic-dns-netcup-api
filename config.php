@@ -21,7 +21,7 @@ define('USE_IPV6', false);
 //Required if using IPv6: The interface to get the IPv6 address from
 define('IPV6_INTERFACE', 'eth0');
 
-//Shall only IPv6 addresses be set in the AAAA record which have a static EUI-64-Identifier (no privacy extensions)?
+//Shall only IPv6 addresses be set in the AAAA record which have a static EUI-64-Identifier (no privacy extensions)? If 'false', EUI-64-Identifier will be filtered and not be used
 define('NO_IPV6_PRIVACY_EXTENSIONS', true);
 
 //If set to true, this will change TTL to 300 seconds on every run if necessary.

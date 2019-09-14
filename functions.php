@@ -176,9 +176,12 @@ function getCurrentPublicIPv6()
     // filter non-valid, private and reserved range addresses
     $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (filter_var($var, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE));});
 
-    // filter non-static addresses
+    // filter non-EUI-64-Identifier addresses
     if (NO_IPV6_PRIVACY_EXTENSIONS) {
       $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') === 88); });
+    } else {
+        // filter EUI-64-Identifier addresses
+        $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') !== 88); });
     }
 
     if (sizeof($ipv6addresses) === 1) {
