@@ -138,7 +138,7 @@ function ipv6_to_binary($ip) {
 function getLongestValidIPv6($ipv6addresses) {
   $ipv6information=shell_exec("ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1");
   $longestValidIPv6 = [
-  "ipv6" => "::",
+  "ipv6" => "::1",
   "validity" => "-1",
   ];
   foreach ($ipv6addresses as $currentIPv6address) {
