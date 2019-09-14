@@ -44,7 +44,7 @@ function setIPCache($publicIPv4, $publicIPv6)
     "ipv4" => $publicIPv4,
     "ipv6" => $publicIPv6,
     "timestamp" => date('Y-m-d H:i:s', time()),
-     ];
+    ];
 
     file_put_contents(sys_get_temp_dir().IP_CACHE_FILE, json_encode($ipcache));
 }
@@ -58,7 +58,7 @@ function sendRequest($request)
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
         CURLOPT_POSTFIELDS => $request,
-    );
+        );
     curl_setopt_array($ch, $curlOptions);
 
     $result = curl_exec($ch);
@@ -180,12 +180,12 @@ function login($customernr, $apikey, $apipassword)
     $logindata = array(
         'action' => 'login',
         'param' =>
-            array(
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apipassword' => $apipassword,
+        array(
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apipassword' => $apipassword,
             ),
-    );
+        );
 
     $request = json_encode($logindata);
 
@@ -205,12 +205,12 @@ function logout($customernr, $apikey, $apisessionid)
     $logoutdata = array(
         'action' => 'logout',
         'param' =>
-            array(
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apisessionid' => $apisessionid,
+        array(
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apisessionid' => $apisessionid,
             ),
-    );
+        );
 
     $request = json_encode($logoutdata);
 
@@ -230,13 +230,13 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
     $infoDnsZoneData = array(
         'action' => 'infoDnsZone',
         'param' =>
-            array(
-                'domainname' => $domainname,
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apisessionid' => $apisessionid,
+        array(
+            'domainname' => $domainname,
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apisessionid' => $apisessionid,
             ),
-    );
+        );
 
     $request = json_encode($infoDnsZoneData);
 
@@ -256,13 +256,13 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
     $infoDnsRecordsData = array(
         'action' => 'infoDnsRecords',
         'param' =>
-            array(
-                'domainname' => $domainname,
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apisessionid' => $apisessionid,
+        array(
+            'domainname' => $domainname,
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apisessionid' => $apisessionid,
             ),
-    );
+        );
 
     $request = json_encode($infoDnsRecordsData);
 
@@ -282,14 +282,14 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
     $updateDnsZoneData = array(
         'action' => 'updateDnsZone',
         'param' =>
-            array(
-                'domainname' => $domainname,
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apisessionid' => $apisessionid,
-                'dnszone' => $dnszone,
+        array(
+            'domainname' => $domainname,
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apisessionid' => $apisessionid,
+            'dnszone' => $dnszone,
             ),
-    );
+        );
 
     $request = json_encode($updateDnsZoneData);
 
@@ -309,16 +309,16 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
     $updateDnsZoneData = array(
         'action' => 'updateDnsRecords',
         'param' =>
-            array(
-                'domainname' => $domainname,
-                'customernumber' => $customernr,
-                'apikey' => $apikey,
-                'apisessionid' => $apisessionid,
-                'dnsrecordset' => array(
-                    'dnsrecords' => $dnsrecords,
+        array(
+            'domainname' => $domainname,
+            'customernumber' => $customernr,
+            'apikey' => $apikey,
+            'apisessionid' => $apisessionid,
+            'dnsrecordset' => array(
+                'dnsrecords' => $dnsrecords,
                 ),
             ),
-    );
+        );
 
     $request = json_encode($updateDnsZoneData);
 
