@@ -131,13 +131,48 @@ function ipv6_to_binary($ip) {
     foreach (unpack('C*', inet_pton($ip)) as $octet) {
         $result .= str_pad(decbin($octet), 8, "0", STR_PAD_LEFT);
     }
-   return $result;
+    return $result;
+}
+
+// returns the longest valid IPv6 address of the input addresses
+function getLongestValidIPv6($ipv6addresses) {
+  $ipv6information=shell_exec("ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1");
+  $longestValidIPv6 = [
+  "ipv6" => "::",
+  "validity" => "-1",
+  ];
+  foreach ($ipv6addresses as $currentIPv6address) {
+     $validity = getValidityIPv6($ipv6information, $currentIPv6address);
+     if($validity>$longestVAlidIPv6["validity"]) {
+         $longestValidIPv6["ipv6"]=$currentIPv6address;
+         $longestValidIPv6["validity"]=$validity;
+     }
+ }
+ return $longestValidIPv6["ipv6"];
+}
+
+// returns the validity of the IPv6 address based on the output of "ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1"
+function getValidityIPv6($ipv6information, $ipv6address)
+{
+    $lineNum = 1;
+    $found = false;
+    foreach(preg_split("/((\r?\n)|(\r\n?))/", $ipv6information) as $line) {
+        if($found) {
+            return($line);
+        }
+        if (strpos($line, $ipv6address) !== false) {
+            $found=true;
+        }
+        $lineNum++;
+    }
+    return -1;
 }
 
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
     $ipv6addresses = preg_split("/((\r?\n)|(\r\n?))/", shell_exec("ip -6 addr show ".IPV6_INTERFACE." | grep 'scope' | grep -Po '(?<=inet6 )[\da-z:]+'"));
+    
     // filter non-valid, private and reserved range addresses
     $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (filter_var($var, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE));});
 
@@ -147,30 +182,14 @@ function getCurrentPublicIPv6()
     }
 
     if (sizeof($ipv6addresses) === 1) {
-	return($ipv6addresses[array_keys($ipv6addresses)[0]]);
+        return($ipv6addresses[array_keys($ipv6addresses)[0]]);
     } elseif (sizeof($ipv6addresses) > 1) {
-        return($ipv6addresses);
+        return(getLongestValidIPv6($ipv6addresses));
     } else {
         outputWarning("Device didn't return a valid IPv6 address.");
     }
 
-    $publicIP = rtrim(file_get_contents('https://ip6.seeip.org'));
-
-    if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-       return $publicIP;
-    }
-
-    outputWarning("https://ip6.seeip.org didn't return a valid IPv6 address.");
-
-    //If IP is invalid, try another API
-    $publicIP = rtrim(file_get_contents('https://v6.ident.me/'));
-
-    //Let's check the result of the second API
-    if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-        return $publicIP;
-    }
-
-    //Still no valid IP?
+    // no valid IP?
     return false;
 }
 

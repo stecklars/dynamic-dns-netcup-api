@@ -24,55 +24,40 @@ if (USE_IPV4 === true) {
 	// get public IPv4 address
 	$publicIPv4 = getCurrentPublicIPv4();
 
-	//If we couldn't determine a valid public IPv4 address exit
+	//If we couldn't determine a valid public IPv4 address: disable further IPv4 assessment
 	if (!$publicIPv4) {
-	    outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
-	    exit(1);
-	}
-
-	if ($ipcache !== false) {
+	    $USE_IPV4 = false;
+    } elseif ($ipcache !== false) {
 		// check whether public IPv4 has changed according to IP cache
 		if ($ipcache['ipv4'] !== $publicIPv4) {
 			$ipv4change = true;
 			outputStdout(sprintf("IPv4 address has changed according to local IP cache. Before: %s; Now: %s", $ipcache['ipv4'], $publicIPv4));
-		}
-		else
-		{
+		} else {
 			outputStdout("IPv4 address hasn't changed according to local IP cache. Current IPv4 address: ".$publicIPv4);
 		}
 	}
 }	
 
 if (USE_IPV6 === true) {
-	// get public IPv4 address
+	// get public IPv6 address
 	$publicIPv6 = getCurrentPublicIPv6();
 
-	//If we couldn't determine a valid public IPv6 address exit
+	//If we couldn't determine a valid public IPv6 address: disable further IPv6 assessment
 	if (!$publicIPv6) {
-	    outputStderr("Device, main API and fallback API didn't return a valid IPv6 address. Exiting.");
-	    exit(1);
-	// If there are multiple IPv6 filter on the previous IPv6 (there may be IPv6 PD re-assign issues) and select the first IPv6
-        } elseif (is_array($publicIPv6)) {
-            $publicIPv6 = array_filter($publicIPv6, function ($var) use($ipcache) { return (stripos($var, $ipcache['ipv6']) === false); });
-	    $publicIPv6 = $publicIPv6[array_keys($publicIPv6)[0]];
-        }
-
-
-	if ($ipcache !== false) {
+	    $USE_IPV6 = false;
+    } elseif ($ipcache !== false) {
 		// check whether public IPv6 has changed according to IP cache
 		if ($ipcache['ipv6'] !== $publicIPv6) {
 			$ipv6change = true;
 			outputStdout(sprintf("IPv6 address has changed according to local IP cache. Before: %s; Now: %s", $ipcache['ipv6'], $publicIPv6));
-		}
-		else
-		{
+		} else {
 			outputStdout("IPv6 address hasn't changed according to local IP cache. Current IPv6 address: ".$publicIPv6);
 		}
 	}
 }
 
-// Login to to netcup via API if no IP cache is available or changes need to be updated
-if ($ipcache === false | $ipv4change === true | $ipv6change === true) {
+// Login to to netcup via API if public ipv4 or public ipv6 is available AND no IP cache is available or changes need to be updated
+if (($USE_IPV6 | $USE_IPV4) & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
 	// Login
 	if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
 	    outputStdout("Logged in successfully!");
