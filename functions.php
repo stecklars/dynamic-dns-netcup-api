@@ -16,6 +16,7 @@ const SUCCESS = 'success';
 
 const IP_CACHE_FILE = '/ipcache';
 
+// clears the ip cache
 function clearIPCache()
 {
     if (file_exists(sys_get_temp_dir().IP_CACHE_FILE)) {
@@ -23,6 +24,7 @@ function clearIPCache()
     }
 }
 
+// gets the public ipv4 and ipv6 addresses of the last successful run of the script 
 function getIPCache()
 {
     // check if cache file exists
@@ -38,6 +40,8 @@ function getIPCache()
         return false;
     }
 }
+
+// writes the current public ipv4 and ipv6 address to a cache file
 function setIPCache($publicIPv4, $publicIPv6)
 {
     $ipcache = [
