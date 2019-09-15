@@ -57,7 +57,7 @@ if (USE_IPV6 === true) {
 }
 
 // Login to to netcup via API if public ipv4 or public ipv6 is available AND no IP cache is available or changes need to be updated
-if (($USE_IPV6 | $USE_IPV4) & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
+if ((USE_IPV6 | USE_IPV4) & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
 	// Login
 	if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
 	    outputStdout("Logged in successfully!");
