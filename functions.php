@@ -357,4 +357,67 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
     outputStderr(sprintf("Error while updating DNS Records: %s Exiting.", $result['longmessage']));
     return false;
 }
+
+// updates the DNS A or AAAA record of the 
+function updateIP($infoDnsRecords, $publicIP, $apisessionid)
+{
+    if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $recordType = "AAAA";
+        $ipType = "IPv6";
+    } else {
+        $recordType = "A";
+        $ipType = "IPv4";
+    }
+
+    $foundHosts = array();
+
+    foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
+        if ($record['hostname'] === HOST && $record['type'] === $recordType) {
+            $foundHosts[] = array(
+                'id' => $record['id'],
+                'hostname' => $record['hostname'],
+                'type' => $record['type'],
+                'priority' => $record['priority'],
+                'destination' => $record['destination'],
+                'deleterecord' => $record['deleterecord'],
+                'state' => $record['state'],
+                );
+        }
+    }
+
+    //If we can't find the host, create it.
+    if (count($foundHosts) === 0) {
+        outputStdout(sprintf($recordType." record for host %s doesn't exist, creating necessary DNS record.", HOST));
+        $foundHosts[] = array(
+            'hostname' => HOST,
+            'type' => $recordType,
+            'destination' => 'newly created Record',
+            );
+    }
+
+    //If the host with A record exists more than one time...
+    if (count($foundHosts) > 1) {
+        outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", HOST));
+        exit(1);
+    }       
+
+    //Has the IP changed?
+    foreach ($foundHosts as $record) {
+        if ($record['destination'] !== $publicIP) {
+            //Yes, it has changed.
+            outputStdout(sprintf($ipType." address has changed. Before: %s; Now: %s", $record['destination'], $publicIP));
+            $foundHosts[0]['destination'] = $publicIP;
+            //Update the record
+            if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHosts)) {
+                outputStdout($ipType." address updated successfully!");
+            } else {
+                // clear ip cache in order to reconnect to API in any case on next run of script
+                clearIPCache();
+            }
+        } else {
+            //No, it hasn't changed.
+            outputStdout($ipType." address hasn't changed. Current ".$ipType." address: ".$publicIP);
+        }
+    }
+}
 ?>
