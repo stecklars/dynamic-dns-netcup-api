@@ -26,8 +26,8 @@ if (USE_IPV4 === true) {
 
 	//If we couldn't determine a valid public IPv4 address: disable further IPv4 assessment
 	if (!$publicIPv4) {
-	    $USE_IPV4 = false;
-    } elseif ($ipcache !== false) {
+		$USE_IPV4 = false;
+	} elseif ($ipcache !== false) {
 		// check whether public IPv4 has changed according to IP cache
 		if ($ipcache['ipv4'] !== $publicIPv4) {
 			$ipv4change = true;
@@ -44,8 +44,8 @@ if (USE_IPV6 === true) {
 
 	//If we couldn't determine a valid public IPv6 address: disable further IPv6 assessment
 	if (!$publicIPv6) {
-	    $USE_IPV6 = false;
-    } elseif ($ipcache !== false) {
+		$USE_IPV6 = false;
+	} elseif ($ipcache !== false) {
 		// check whether public IPv6 has changed according to IP cache
 		if ($ipcache['ipv6'] !== $publicIPv6) {
 			$ipv6change = true;
