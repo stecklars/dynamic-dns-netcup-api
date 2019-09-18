@@ -147,7 +147,7 @@ function getLongestValidIPv6($ipv6addresses) {
   ];
   foreach ($ipv6addresses as $currentIPv6address) {
    $validity = getValidityIPv6($ipv6information, $currentIPv6address);
-   if($validity>$longestVAlidIPv6["validity"]) {
+   if($validity>$longestValidIPv6["validity"]) {
        $longestValidIPv6["ipv6"]=$currentIPv6address;
        $longestValidIPv6["validity"]=$validity;
    }
@@ -183,21 +183,21 @@ function getCurrentPublicIPv6()
     // filter non-EUI-64-Identifier addresses
     if (NO_IPV6_PRIVACY_EXTENSIONS) {
       $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') === 88); });
-  } else {
-        // filter EUI-64-Identifier addresses
-    $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') !== 88); });
-}
+      } else {
+            // filter EUI-64-Identifier addresses
+        $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') !== 88); });
+    }
 
-if (sizeof($ipv6addresses) === 1) {
-    return($ipv6addresses[array_keys($ipv6addresses)[0]]);
-} elseif (sizeof($ipv6addresses) > 1) {
-    return(getLongestValidIPv6($ipv6addresses));
-} else {
-    outputWarning("Device didn't return a valid IPv6 address.");
-}
+    if (sizeof($ipv6addresses) === 1) {
+        return($ipv6addresses[array_keys($ipv6addresses)[0]]);
+    } elseif (sizeof($ipv6addresses) > 1) {
+        return(getLongestValidIPv6($ipv6addresses));
+    } else {
+        outputWarning("Device didn't return a valid IPv6 address.");
+    }
 
     // no valid IP?
-return false;
+    return false;
 }
 
 //Login into netcup domain API and returns Apisessionid
@@ -395,7 +395,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
             );
     }
 
-    //If the host with A record exists more than one time...
+    //If the host with A/AAAA record exists more than one time...
     if (count($foundHosts) > 1) {
         outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", HOST));
         exit(1);
