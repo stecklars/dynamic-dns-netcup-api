@@ -204,7 +204,11 @@ function ipv6_to_binary($ip) {
     return $result;
 }
 
-// returns the longest valid IPv6 address of the input addresses
+/**
+ * Returns the longest valid IPv6 address of the input addresses
+ * @param ipv6addresses array of IPv6 addresses
+ * @return String longest valid IPv6 address of input addresses
+ */
 function getLongestValidIPv6($ipv6addresses) {
   $ipv6information=shell_exec("ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1");
   $longestValidIPv6 = [
@@ -221,7 +225,13 @@ function getLongestValidIPv6($ipv6addresses) {
 return $longestValidIPv6["ipv6"];
 }
 
-// returns the validity of the IPv6 address based on the output of "ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1"
+
+/**
+ * Returns the validity of the IPv6 address based on the output of "ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1"
+ * @param ipv6information output of "ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1"
+ * @param ipv6address the IPv6 address to get the validity of
+ * @return String the validity of the input IPv6 address based on the input IPv6 information, -1 if validity could not be determined
+ */
 function getValidityIPv6($ipv6information, $ipv6address)
 {
     $lineNum = 1;
@@ -468,9 +478,16 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
     return false;
 }
 
-// updates the DNS A or AAAA record of the 
+/**
+ * Updates the DNS A or AAAA record based on input IP address
+ * @param infoDnsRecords the netcup DNS record info
+ * @param publicIP the IP address to be updated via the API
+ * @param apisessionid Api Key for Netcup domain Api
+ * @return Boolean for success
+ */
 function updateIP($infoDnsRecords, $publicIP, $apisessionid)
 {
+    // set record type and ip type strings based on iput IP address type
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         $recordType = "AAAA";
         $ipType = "IPv6";
