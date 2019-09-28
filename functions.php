@@ -535,7 +535,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
         foreach ($foundHosts as $record) {
             if ($record['destination'] !== $publicIP) {
                 //Yes, it has changed.
-                outputStdout(sprintf($ipType." address has changed. Before: %s; Now: %s", $record['destination'], $publicIP));
+                outputStdout(sprintf($ipType." address for host %s has changed. Before: %s; Now: %s",$host, $record['destination'], $publicIP));
                 $foundHosts[0]['destination'] = $publicIP;
                 //Update the record
                 if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHosts)) {
