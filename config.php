@@ -9,8 +9,11 @@ define('APIPASSWORD', 'abcdefghijklmnopqrstuvwxyz');
 // Enter Domain which should be used for dynamic DNS
 define('DOMAIN', 'mydomain.com');
 
-//Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
-define('HOST', 'server');
+//Enter subdomain(s) to be used for dynamic DNS IPv4, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
+define('HOST_IPv4', 'server.example.com,server1.example.com');
+
+//Enter subdomain(s) to be used for dynamic DNS IPv6, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
+define('HOST_IPv6', 'server.example.com,server1.example.com');
 
 //Activate IPv4 update
 define('USE_IPV4', true);

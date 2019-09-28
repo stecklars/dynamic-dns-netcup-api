@@ -8,7 +8,7 @@ outputStdout("Running dynamic DNS client for netcup 2.0");
 outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 
-outputStdout(sprintf("Updating DNS records for host(s) '%s' on domain %s\n", HOST, DOMAIN));
+outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) and '%s' (AAAA record) on domain %s\n", HOST_IPv4, HOST_IPv6, DOMAIN));
 
 // get cached IP addresses
 $ipcache = getIPCache();

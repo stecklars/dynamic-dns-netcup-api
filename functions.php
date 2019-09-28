@@ -491,13 +491,12 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         $recordType = "AAAA";
         $ipType = "IPv6";
+	$hosts = explode (",", HOST_IPv6);
     } else {
         $recordType = "A";
         $ipType = "IPv4";
+	$hosts = explode (",", HOST_IPv4);
     }
-
-    //parse hosts to update
-    $hosts = explode (",", HOST);
 
     //loop at hosts to update
     foreach ($hosts as $host) {
