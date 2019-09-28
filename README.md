@@ -8,16 +8,16 @@
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
   * You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
 * netcup API key and API password, which can be created within your CCP at https://ccp.netcup.net
-* PHP-CLI with CURL extension
+* PHP-CLI with CURL, JSON and Openssl extension
 * A domain :wink:
 
 ## Features
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
-* Determines correct public IP address. Using local Adapter, local FritzBox and fallback API for determining the IP address, in case main API does return invalid / no IP
+* Determines correct public IP addresses (IPv4 and IPv6). Using local Adapter, local FritzBox and fallback API for determining the IP addresses, in case main API does return invalid / no IP
 * Caching the IP provided to netcup DNS to avoid unnecessary API calls
-* IPv6 Support
 * Updating of a specific subdomain, domain root, or multiple subdomains
+* configure hosts for IPv4 and IPv6 separately
 * Creation of DNS record, if it doesn't already exist
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
 * Hiding output (quiet option)
