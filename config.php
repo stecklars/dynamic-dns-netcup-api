@@ -8,11 +8,18 @@ define('APIPASSWORD', 'abcdefghijklmnopqrstuvwxyz');
 
 // Enter Domain which should be used for dynamic DNS
 define('DOMAIN', 'mydomain.com');
+
 //Enter subdomain to be used for dynamic DNS, alternatively '@' for domain root or '*' for wildcard. If the record doesn't exist, the script will create it.
 define('HOST', 'server');
 
 //Activate IPv4 update
 define('USE_IPV4', true);
+
+//Should the script try to get the public IPv4 from your FritzBox?
+define('USE_FRITZBOX', false);
+
+//IP of the Fritz Box. You can use default fritz.box
+define('FRITZBOX_IP', 'fritz.box');
 
 //If set to true, the script will check for your public IPv6 address too and add it as an AAAA-Record / change an existing AAAA-Record for the host.
 //Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
