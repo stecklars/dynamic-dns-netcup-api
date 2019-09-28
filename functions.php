@@ -499,12 +499,11 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
     //parse hosts to update
     $hosts = explode (",", HOST);
 
-    $foundHosts = array();
-
     //loop at hosts to update
     foreach ($hosts as $host) {
+        $foundHosts = array();
         foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
-            if ($record['hostname'] === HOST && $record['type'] === $recordType) {
+            if ($record['hostname'] === $host && $record['type'] === $recordType) {
                 $foundHosts[] = array(
                     'id' => $record['id'],
                     'hostname' => $record['hostname'],
@@ -519,9 +518,9 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
 
         //If we can't find the host, create it.
         if (count($foundHosts) === 0) {
-            outputStdout(sprintf($recordType." record for host %s doesn't exist, creating necessary DNS record.", HOST));
+            outputStdout(sprintf($recordType." record for host %s doesn't exist, creating necessary DNS record.", $host));
             $foundHosts[] = array(
-                'hostname' => HOST,
+                'hostname' => $host,
                 'type' => $recordType,
                 'destination' => 'newly created Record',
                 );
@@ -529,7 +528,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
 
         //If the host with A/AAAA record exists more than one time...
         if (count($foundHosts) > 1) {
-            outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", HOST));
+            outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", $host));
             exit(1);
         }       
 
@@ -548,7 +547,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
                 }
             } else {
                 //No, it hasn't changed.
-                outputStdout($ipType." address hasn't changed. Current ".$ipType." address: ".$publicIP);
+                outputStdout(sprintf($ipType." for host %s address hasn't changed. Current ".$ipType." address: ".$publicIP, $host));
             }
         }
     }
