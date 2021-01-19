@@ -35,7 +35,10 @@ Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-ap
 I'm always trying to keep the master branch stable.
 
 ### Configuration
-Configuration is very simple: Just fill out `config.php` with the required values. The options are explained in there.
+Configuration is very simple: 
+* Copy `config.dist.php` to `config.php`
+  * `cp config.dist.php config.php`
+* Fill out `config.php` with the required values. The options are explained in there.
 
 ### How to use
 `php update.php`
