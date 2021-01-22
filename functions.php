@@ -6,10 +6,12 @@ require_once 'config.php';
 $quiet = false;
 
 //Check passed options
-foreach ($argv as $option) {
-    if ($option === "--quiet") {
-        $quiet = true;
-    }
+if(isset($argv)){
+	foreach ($argv as $option) {
+		if ($option === "--quiet") {
+			$quiet = true;
+		}
+	}
 }
 
 const SUCCESS = 'success';
