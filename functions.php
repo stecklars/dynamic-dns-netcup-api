@@ -162,9 +162,9 @@ function getCurrentPublicIPv4()
         return $publicIP;
     }
 
+    // logging
     outputWarning("https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org");
 
-    //If IP is invalid, try another API
     //The API adds an empty line, so we remove that with rtrim
     $publicIP = rtrim(file_get_contents('https://ip4.seeip.org'));
 
@@ -172,6 +172,9 @@ function getCurrentPublicIPv4()
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
         return $publicIP;
     }
+
+    // do some logging
+    outputWarning("https://ip4.seeip.org didn't return a valid IPv4 address.");
 
     //Still no valid IP?
     return false;
@@ -552,7 +555,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
         if (count($foundHosts) > 1) {
             outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", $host));
             exit(1);
-        }       
+        }
 
         //Has the IP changed?
         foreach ($foundHosts as $record) {

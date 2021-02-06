@@ -20,7 +20,7 @@ $publicIPv6 = '::1';
 
 if (USE_IPV4 === true) {
 	// do some logging
-	outputStdout(sprintf("Updating DNS records for host(s) '%s' (AAAA record) on domain %s\n", HOST_IPv6, DOMAIN));
+	outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) on domain %s", HOST_IPv4, DOMAIN));
 
 	// get public IPv4 address
 	$publicIPv4 = USE_FRITZBOX ? getCurrentPublicIPv4FromFritzBox(FRITZBOX_IP) : getCurrentPublicIPv4();
@@ -41,7 +41,7 @@ if (USE_IPV4 === true) {
 
 if (USE_IPV6 === true) {
         // do some logging
-        outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) on domain %s\n", HOST_IPv4, DOMAIN));
+        outputStdout(sprintf("Updating DNS records for host(s) '%s' (AAAA record) on domain %s", HOST_IPv6, DOMAIN));
 
 	// get public IPv6 address
 	$publicIPv6 = getCurrentPublicIPv6();
@@ -62,6 +62,7 @@ if (USE_IPV6 === true) {
 
 // Login to to netcup via API if public ipv4 or public ipv6 is available AND no IP cache is available or changes need to be updated
 if ((USE_IPV6 | USE_IPV4) & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
+
 	// Login
 	if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
 		outputStdout("Logged in successfully!");
@@ -104,7 +105,7 @@ if ((USE_IPV6 | USE_IPV4) & ($ipcache === false | $ipv4change === true | $ipv6ch
 		clearIPCache();
 		exit(1);
 	}
-	
+
 	// update ipv4
 	if (USE_IPV4) {
 		updateIP($infoDnsRecords, $publicIPv4, $apisessionid);
