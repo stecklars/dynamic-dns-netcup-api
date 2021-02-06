@@ -9,12 +9,13 @@ const IP_CACHE_FILE = '/ipcache';
 $quiet = false;
 
 //Check passed options
-foreach ($argv as $option) {
-    if ($option === "--quiet") {
-        $quiet = true;
+if (isset($argv)){
+    foreach ($argv as $option) {
+        if ($option === "--quiet") {
+            $quiet = true;
+        }
     }
 }
-
 
 /**
  * Clear IP Cache
