@@ -110,7 +110,11 @@ function outputWarning($message)
     $date = date("Y/m/d H:i:s O");
     $output = sprintf("[%s][WARNING] %s\n", $date, $message);
 
+    // write warning to STDERR
     fwrite(STDERR, $output);
+
+    // mail warning
+    mailMessage($output);
 }
 
 
@@ -123,8 +127,26 @@ function outputStderr($message)
     $date = date("Y/m/d H:i:s O");
     $output = sprintf("[%s][ERROR] %s\n", $date, $message);
 
+    // wirte error to STDERR
     fwrite(STDERR, $output);
+
+    // mail error
+    mailMessage($output);
 }
+
+
+/**
+ * Mails a message via 'mail' function
+ * @param message body to send via mail
+ */
+function mailMessage($message)
+{
+    if (SEND_MAIL) {
+        // Send - replace email@domain.com with the recipient address
+        mail(MAIL_RECIPIENT, 'Error updating DNS records for '.DOMAIN.' from '.gethostname(), wordwrap($message, 70, "\r\n"));
+    }
+}
+
 
 /**
  * Get public IPv4 from ipify.org

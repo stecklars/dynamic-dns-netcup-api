@@ -39,4 +39,10 @@ define('CHANGE_TTL', true);
 
 // Use netcup DNS REST-API
 define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');
+
+// Send an email on errors and warnings. Requires the 'sendmail_path' to be set in php.ini.
+define('SEND_MAIL', false);
+
+// Recipient mail address for error and warnings
+define('MAIL_RECIPIENT', 'user@domain.tld');
 ?>
