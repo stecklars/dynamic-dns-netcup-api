@@ -8,8 +8,6 @@ outputStdout("Running dynamic DNS client for netcup 2.0");
 outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 
-outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) and '%s' (AAAA record) on domain %s\n", HOST_IPv4, HOST_IPv6, DOMAIN));
-
 // get cached IP addresses
 $ipcache = getIPCache();
 
@@ -21,6 +19,9 @@ $publicIPv4 = '127.0.0.1';
 $publicIPv6 = '::1';
 
 if (USE_IPV4 === true) {
+	// do some logging
+	outputStdout(sprintf("Updating DNS records for host(s) '%s' (AAAA record) on domain %s\n", HOST_IPv6, DOMAIN));
+
 	// get public IPv4 address
 	$publicIPv4 = USE_FRITZBOX ? getCurrentPublicIPv4FromFritzBox(FRITZBOX_IP) : getCurrentPublicIPv4();
 
@@ -36,9 +37,12 @@ if (USE_IPV4 === true) {
 			outputStdout("IPv4 address hasn't changed according to local IP cache. Current IPv4 address: ".$publicIPv4);
 		}
 	}
-}	
+}
 
 if (USE_IPV6 === true) {
+        // do some logging
+        outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) on domain %s\n", HOST_IPv4, DOMAIN));
+
 	// get public IPv6 address
 	$publicIPv6 = getCurrentPublicIPv6();
 
