@@ -21,6 +21,7 @@
 * Creation of DNS record, if it doesn't already exist
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
 * Hiding output (quiet option)
+* Dockernized version available, refer to https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api
 
 ### Missing
 * Support for domain root and wildcard
