@@ -75,7 +75,7 @@ $ php update.php
 [2021/02/14 16:52:38 +0000][NOTICE] =============================================
 
 [2021/02/14 16:52:38 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainA' (A record) on domain domain.tld
-[2021/02/14 16:52:40 +0000][NOTICE] IPv4 address hasn't changed according to local IP cache. Current IPv4 address: 93.131.162.156
+[2021/02/14 16:52:40 +0000][NOTICE] IPv4 address hasn't changed according to local IP cache. Current IPv4 address: 8.8.8.8
 [2021/02/14 16:52:40 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainB' (AAAA record) on domain domain.tld
 [2021/02/14 16:52:40 +0000][NOTICE] IPv6 address hasn't changed according to local IP cache. Current IPv6 address: 2a01:::0
 ```
