@@ -216,10 +216,9 @@ function getCurrentPublicIPv4FromFritzBox($fritzboxadress)
     //search for IPv4 in result
     preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $result, $match);
 
-    if (!empty($match)) {
+    if ($result & !empty($match)) {
         return $match[1][0];
-    }
-    else {
+    } else {
         //fallback to ipify
         outputWarning("Can't get public IP from FritzBox at ".$fritzboxadress.". Fallback to ipify.");
         return getCurrentPublicIPv4();
