@@ -83,7 +83,7 @@ if (($config_array['USE_IPV6'] === 'true' | $config_array['USE_IPV4'] === 'true'
 
 	//TTL Warning
 	if ($config_array['CHANGE_TTL'] !== 'true' && $infoDnsZone['responsedata']['ttl'] > 300) {
-		outputStdout("TTL is higher than 300 seconds - this is not optimal for dynamic DNS, since DNS updates will take a long time. Ideally, change TTL to lower value. You may set CHANGE_TTL to True in config.php, in which case TTL will be set to 300 seconds automatically.");
+		outputStdout("TTL is higher than 300 seconds - this is not optimal for dynamic DNS, since DNS updates will take a long time. Ideally, change TTL to lower value. You may set CHANGE_TTL to True in config.ini, in which case TTL will be set to 300 seconds automatically.");
 	}
 
 	//If user wants it, then we lower TTL, in case it doesn't have correct value
