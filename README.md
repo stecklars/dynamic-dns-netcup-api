@@ -1,25 +1,22 @@
 # Dynamic DNS client for netcup DNS API
-*This project is not affiliated with the company netcup GmbH. Although it is developed by an employee, it is not an official client by netcup GmbH and was developed in my free time.*
-*netcup is a registered trademark of netcup GmbH, Karlsruhe, Germany.*
-
-**A simple dynamic DNS client written in PHP for use with the netcup DNS API.**
+**A simple dynamic DNS client written in PHP for use with the netcup DNS API.** This project is a fork of https://github.com/stecklars/dynamic-dns-netcup-api. Please also refer to the dockernized version under https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api.
 
 ## Requirements
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
   * You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
 * netcup API key and API password, which can be created within your CCP at https://ccp.netcup.net
-* PHP-CLI with CURL, JSON and Openssl extension
+* PHP-CLI with CURL, JSON and Openssl extension or run it with docker-compose: https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api
 * A domain :wink:
 
 ## Features
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
-* Determines correct public IP addresses (IPv4 and IPv6). Using local Adapter, local FritzBox and fallback API for determining the IP addresses, in case main API does return invalid / no IP
+* Determines correct public IP addresses (IPv4 and IPv6) without external third party look ups using local adapter for IPV or local FritzBox (external API call for determining the IPv4 addresses possible if no fritz box available or as fallback)
 * Caching the IP provided to netcup DNS to avoid unnecessary API calls
 * Updating of a specific subdomain, domain root, or multiple subdomains
-* configure hosts for IPv4 and IPv6 separately
-* Creation of DNS record, if it doesn't already exist
-* If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
+* configure hosts for updating IPv4 and IPv6 separately
+* Creation of DNS record, if it does not already exist
+* If configured, lowers TTL to 300 seconds for the domain on each run if necessary
 * Hiding output (quiet option)
 * Dockernized version available, refer to https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api
 
@@ -29,14 +26,12 @@
 
 ## Getting started
 ### Download
-Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
+Download the [latest version](https://github.com/mm28ajos/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
 
-`$ git clone https://github.com/stecklars/dynamic-dns-netcup-api.git`
-
-I'm always trying to keep the master branch stable.
+`$ git clone https://github.com/mm28ajos/dynamic-dns-netcup-api/dynamic-dns-netcup-api.git`
 
 ### Configuration
-Configuration is very simple: Just fill out `config.php` with the required values. The options are explained in there.
+Configuration is very simple: Just fill out `config.ini` with the required values. The options are explained in there.
 
 ### How to use
 `php update.php`
@@ -53,59 +48,36 @@ Just add these Options after the command like `php update.php --quiet`
 ## Example outputs
 ```
 $ php update.php
-[2018/06/10 05:03:40 +0200][NOTICE] =============================================
-[2018/06/10 05:03:40 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
-[2018/06/10 05:03:40 +0200][NOTICE] This script is not affiliated with netcup.
-[2018/06/10 05:03:40 +0200][NOTICE] =============================================
+[2021/02/14 16:49:27 +0000][NOTICE] =============================================
+[2021/02/14 16:49:27 +0000][NOTICE] Running dynamic DNS client for netcup 2.0
+[2021/02/14 16:49:27 +0000][NOTICE] This script is not affiliated with netcup.
+[2021/02/14 16:49:27 +0000][NOTICE] =============================================
 
-[2018/06/10 05:03:40 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
-
-[2018/06/10 05:03:41 +0200][NOTICE] Logged in successfully!
-[2018/06/10 05:03:41 +0200][NOTICE] Successfully received Domain info.
-[2018/06/10 05:03:41 +0200][NOTICE] Lowered TTL to 300 seconds successfully.
-[2018/06/10 05:03:42 +0200][NOTICE] Successfully received DNS record data.
-[2018/06/10 05:03:42 +0200][NOTICE] A record for host @ doesn't exist, creating necessary DNS record.
-[2018/06/10 05:03:42 +0200][NOTICE] IPv4 address has changed. Before: newly created Record; Now: 5.6.7.8
-[2018/06/10 05:03:44 +0200][NOTICE] IPv4 address updated successfully!
-[2018/06/10 05:03:44 +0200][NOTICE] AAAA record for host @ doesn't exist, creating necessary DNS record.
-[2018/06/10 05:03:44 +0200][NOTICE] IPv6 address has changed. Before: newly created Record; Now: 2001:db8:85a3:0:0:8a2e:370:7334
-[2018/06/10 05:03:46 +0200][NOTICE] IPv6 address updated successfully!
-[2018/06/10 05:03:46 +0200][NOTICE] Logged out successfully!
-
+[2021/02/14 16:49:27 +0000][NOTICE] No ip cache available
+[2021/02/14 16:49:27 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainA' (A record) on domain domain.tld
+[2021/02/14 16:49:28 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainB' (AAAA record) on domain domain.tld
+[2021/02/14 16:49:28 +0000][NOTICE] Logged in successfully!
+[2021/02/14 16:49:28 +0000][NOTICE] Successfully received Domain info.
+[2021/02/14 16:49:28 +0000][NOTICE] Successfully received DNS record data.
+[2021/02/14 16:49:28 +0000][NOTICE] A record for host sub.subdomainA doesn't exist, creating necessary DNS record.
+[2021/02/14 16:49:28 +0000][NOTICE] IPv4 address for host sub.subdomain has changed. Before: newly created Record; Now: 8.8.8.8
+[2021/02/14 16:49:31 +0000][NOTICE] IPv4 address updated successfully!
+[2021/02/14 16:49:31 +0000][NOTICE] AAAA record for host sub.subdomainB doesn't exist, creating necessary DNS record.
+[2021/02/14 16:49:31 +0000][NOTICE] IPv6 address for host sub.subdomainB has changed. Before: newly created Record; Now: 2a01:::0
+[2021/02/14 16:49:33 +0000][NOTICE] IPv6 address updated successfully!
+[2021/02/14 16:49:33 +0000][NOTICE] Logged out successfully!
 ```
 ```
 $ php update.php
-[2018/06/10 05:03:50 +0200][NOTICE] =============================================
-[2018/06/10 05:03:50 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
-[2018/06/10 05:03:50 +0200][NOTICE] This script is not affiliated with netcup.
-[2018/06/10 05:03:50 +0200][NOTICE] =============================================
+[2021/02/14 16:52:38 +0000][NOTICE] =============================================
+[2021/02/14 16:52:38 +0000][NOTICE] Running dynamic DNS client for netcup 2.0
+[2021/02/14 16:52:38 +0000][NOTICE] This script is not affiliated with netcup.
+[2021/02/14 16:52:38 +0000][NOTICE] =============================================
 
-[2018/06/10 05:03:50 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
-
-[2018/06/10 05:03:50 +0200][NOTICE] Logged in successfully!
-[2018/06/10 05:03:51 +0200][NOTICE] Successfully received Domain info.
-[2018/06/10 05:03:51 +0200][NOTICE] Successfully received DNS record data.
-[2018/06/10 05:03:52 +0200][NOTICE] IPv4 address hasn't changed. Current IPv4 address: 5.6.7.8
-[2018/06/10 05:03:52 +0200][NOTICE] IPv6 address hasn't changed. Current IPv6 address: 2001:db8:85a3:0:0:8a2e:370:7334
-[2018/06/10 05:03:52 +0200][NOTICE] Logged out successfully!
-```
-```
-$ php update.php
-[2018/06/10 05:08:22 +0200][NOTICE] =============================================
-[2018/06/10 05:08:22 +0200][NOTICE] Running dynamic DNS client for netcup 2.0
-[2018/06/10 05:08:22 +0200][NOTICE] This script is not affiliated with netcup.
-[2018/06/10 05:08:22 +0200][NOTICE] =============================================
-
-[2018/06/10 05:08:22 +0200][NOTICE] Updating DNS records for host @ on domain mydomain.com
-
-[2018/06/10 05:08:22 +0200][NOTICE] Logged in successfully!
-[2018/06/10 05:08:22 +0200][NOTICE] Successfully received Domain info.
-[2018/06/10 05:08:23 +0200][NOTICE] Successfully received DNS record data.
-[2018/06/10 05:08:23 +0200][NOTICE] IPv4 address has changed. Before: 5.6.7.8; Now: 1.2.3.4
-[2018/06/10 05:08:24 +0200][NOTICE] IPv4 address updated successfully!
-[2018/06/10 05:08:24 +0200][NOTICE] IPv6 address has changed. Before: 2001:db8:85a3:0:0:8a2e:370:7334; Now: 2001:db8:85a3:0:0:8a2e:370:5123
-[2018/06/10 05:08:24 +0200][NOTICE] IPv6 address updated successfully!
-[2018/06/10 05:08:25 +0200][NOTICE] Logged out successfully!
+[2021/02/14 16:52:38 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainA' (A record) on domain domain.tld
+[2021/02/14 16:52:40 +0000][NOTICE] IPv4 address hasn't changed according to local IP cache. Current IPv4 address: 93.131.162.156
+[2021/02/14 16:52:40 +0000][NOTICE] Updating DNS records for host(s) 'sub.subdomainB' (AAAA record) on domain domain.tld
+[2021/02/14 16:52:40 +0000][NOTICE] IPv6 address hasn't changed according to local IP cache. Current IPv6 address: 2a01:::0
 ```
 
 If you have ideas on how to improve this script, please don't hesitate to create an issue or provide me with a pull request. Thank you!
