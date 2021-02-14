@@ -1,7 +1,9 @@
 <?php
 
+// load config file
+$config_array = parse_ini_file("config.ini", false, true);
+
 //Constants
-require_once 'config.php';
 const SUCCESS = 'success';
 const IP_CACHE_FILE = '/ipcache';
 
@@ -49,6 +51,8 @@ function getIPCache()
 
 /**
  * Save passed IPs to temp file
+ * @param publicIPv4 The public ipv4 
+ * @param publicIPv6 The public ipv6
  */
 function setIPCache($publicIPv4, $publicIPv6)
 {
@@ -64,10 +68,11 @@ function setIPCache($publicIPv4, $publicIPv6)
 /**
  * Sends request to netcup Domain API and returns the result
  * @param request Request
+ * @param apiurl The URL of the netcup API
  */
-function sendRequest($request)
+function sendRequest($request, $apiurl)
 {
-    $ch = curl_init(APIURL);
+    $ch = curl_init($apiurl);
     $curlOptions = array(
         CURLOPT_POST => 1,
         CURLOPT_RETURNTRANSFER => 1,
@@ -108,6 +113,7 @@ function outputStdout($message)
  */
 function outputWarning($message)
 {
+    global $config_array;
     $date = date("Y/m/d H:i:s O");
     $output = sprintf("[%s][WARNING] %s\n", $date, $message);
 
@@ -115,9 +121,10 @@ function outputWarning($message)
     fwrite(STDERR, $output);
 
     // mail warning
-    mailMessage($output);
+    if ( $config_array['SEND_MAIL']) {
+        mailMessage($output, $config_array['MAIL_RECIPIENT'], $config_array['DOMAIN']);
+    }
 }
-
 
 /**
  * Outputs error to stderr
@@ -125,6 +132,7 @@ function outputWarning($message)
  */
 function outputStderr($message)
 {
+    global $config_array;
     $date = date("Y/m/d H:i:s O");
     $output = sprintf("[%s][ERROR] %s\n", $date, $message);
 
@@ -132,22 +140,22 @@ function outputStderr($message)
     fwrite(STDERR, $output);
 
     // mail error
-    mailMessage($output);
+    if ( $config_array['SEND_MAIL']) {
+        mailMessage($output, $config_array['MAIL_RECIPIENT'], $config_array['DOMAIN']);
+    }
 }
-
 
 /**
  * Mails a message via 'mail' function
  * @param message body to send via mail
+ * @param recipient the recipient of the notification mail
+ * @param domain the netcup hosted domain being updated
  */
-function mailMessage($message)
+function mailMessage($message, $recipient, $domain)
 {
-    if (SEND_MAIL) {
-        // Send - replace email@domain.com with the recipient address
-        mail(MAIL_RECIPIENT, 'Error updating DNS records for '.DOMAIN.' from '.gethostname(), wordwrap($message, 70, "\r\n"));
-    }
+    // Send - replace email@domain.com with the recipient address
+    mail($recipient, 'Error updating DNS records for '.$domain.' from '.gethostname(), wordwrap($message, 70, "\r\n"));
 }
-
 
 /**
  * Get public IPv4 from ipify.org
@@ -233,10 +241,11 @@ function ipv6_to_binary($ip) {
 /**
  * Returns the longest valid IPv6 address of the input addresses
  * @param ipv6addresses array of IPv6 addresses
+ * @param ipv6interface the interface to get the IPv6 from
  * @return String longest valid IPv6 address of input addresses
  */
-function getLongestValidIPv6($ipv6addresses) {
-  $ipv6information=shell_exec("ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1");
+function getLongestValidIPv6($ipv6addresses, $ipv6interface) {
+  $ipv6information=shell_exec("ip -6 addr show ".$ipv6interface." | awk '{print $2}' | cut -ds -f1");
   $longestValidIPv6 = [
   "ipv6" => "::1",
   "validity" => "-1",
@@ -250,7 +259,6 @@ function getLongestValidIPv6($ipv6addresses) {
 }
 return $longestValidIPv6["ipv6"];
 }
-
 
 /**
  * Returns the validity of the IPv6 address based on the output of "ip -6 addr show ".IPV6_INTERFACE." | awk '{print $2}' | cut -ds -f1"
@@ -276,27 +284,27 @@ function getValidityIPv6($ipv6information, $ipv6address)
 
 /**
  * Returns current public IPv6 address
+ * @param ipv6interface the interface to get the IPv6 from
+ * @param nouseipv6privacyextensions whether to include ipv6 addresses with privacy extension or not
  * @return String Current public IPv6 address or false if no ip found
  */
-function getCurrentPublicIPv6()
+function getCurrentPublicIPv6($ipv6interface, $nouseipv6privacyextensions)
 {
-    $ipv6addresses = preg_split("/((\r?\n)|(\r\n?))/", shell_exec("ip -6 addr show ".IPV6_INTERFACE." | grep 'scope' | grep -Po '(?<=inet6 )[\da-z:]+'"));
+    $ipv6addresses = preg_split("/((\r?\n)|(\r\n?))/", shell_exec("ip -6 addr show ".$ipv6interface." | grep 'scope' | grep -Po '(?<=inet6 )[\da-z:]+'"));
     
     // filter non-valid, private and reserved range addresses
     $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (filter_var($var, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE));});
-
+   
     // filter non-EUI-64-Identifier addresses
-    if (NO_IPV6_PRIVACY_EXTENSIONS) {
-      $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') === 88); });
-      } else {
-            // filter EUI-64-Identifier addresses
+    if ($nouseipv6privacyextensions === 'true') {
+        // filter EUI-64-Identifier addresses
         $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') !== 88); });
     }
 
     if (sizeof($ipv6addresses) === 1) {
         return($ipv6addresses[array_keys($ipv6addresses)[0]]);
     } elseif (sizeof($ipv6addresses) > 1) {
-        return(getLongestValidIPv6($ipv6addresses));
+        return(getLongestValidIPv6($ipv6addresses, $ipv6interface));
     } else {
         outputWarning("Device didn't return a valid IPv6 address.");
     }
@@ -310,9 +318,10 @@ function getCurrentPublicIPv6()
  * @param customernr Netcup Customer Number
  * @param apikey Api Key for Netcup domain Api
  * @param apipassword Api Password for Netcup domain Api
+ * @param apiurl The netcup API URL
  * @return String Apisessionid
  */
-function login($customernr, $apikey, $apipassword)
+function login($customernr, $apikey, $apipassword, $apiurl)
 {
     $logindata = array(
         'action' => 'login',
@@ -326,7 +335,7 @@ function login($customernr, $apikey, $apipassword)
 
     $request = json_encode($logindata);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apiurl);
 
     if ($result['status'] === SUCCESS) {
         return $result['responsedata']['apisessionid'];
@@ -341,9 +350,10 @@ function login($customernr, $apikey, $apipassword)
  * @param customernr Netcup Customer Number
  * @param apikey Api Key for Netcup domain Api
  * @param apisessionid Api Session ID
+ * @param apiurl The netcup API URL
  * @return Boolean for success
  */
-function logout($customernr, $apikey, $apisessionid)
+function logout($customernr, $apikey, $apisessionid, $apiurl)
 {
     $logoutdata = array(
         'action' => 'logout',
@@ -357,7 +367,7 @@ function logout($customernr, $apikey, $apisessionid)
 
     $request = json_encode($logoutdata);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apiurl);
 
     if ($result['status'] === SUCCESS) {
         return true;
@@ -372,9 +382,10 @@ function logout($customernr, $apikey, $apisessionid)
  * @param domainname Domain Name
  * @param apikey Api Key for Netcup domain Api
  * @param apisessionid Api Session ID
+* @param apiurl The netcup API URL
  * @return Array Result of Request or false
  */
-function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
+function infoDnsZone($domainname, $customernr, $apikey, $apisessionid, $apiurl)
 {
     $infoDnsZoneData = array(
         'action' => 'infoDnsZone',
@@ -389,7 +400,7 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
 
     $request = json_encode($infoDnsZoneData);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apiurl);
 
     if ($result['status'] === SUCCESS) {
         return $result;
@@ -399,15 +410,15 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
     return false;
 }
 
-
 /**
  * Get info about dns records from netcup domain API
  * @param domainname Domain Name
  * @param customernr Netcup Customer Number
  * @param apikey Api Key for Netcup domain Api
+ * @param apiurl The netcup API URL
  * @return Array Result of Request or false
  */
-function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
+function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid, $apiurl)
 {
     $infoDnsRecordsData = array(
         'action' => 'infoDnsRecords',
@@ -422,7 +433,7 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
 
     $request = json_encode($infoDnsRecordsData);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apiurl);
 
     if ($result['status'] === SUCCESS) {
         return $result;
@@ -438,10 +449,11 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
  * @param customernr Netcup Customer Number
  * @param apikey Api Key for Netcup domain Api
  * @param apisessionid Api Session ID
- * @param $dnszone DNS Zone to update
+ * @param dnszone DNS Zone to update
+ * @param apiurl The netcup API URL
  * @return Boolean for success
  */
-function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszone)
+function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszone, $apiurl)
 {
     $updateDnsZoneData = array(
         'action' => 'updateDnsZone',
@@ -457,7 +469,7 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
 
     $request = json_encode($updateDnsZoneData);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apirurl);
 
     if ($result['status'] === SUCCESS) {
         return true;
@@ -474,9 +486,10 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
  * @param apikey Api Key for Netcup domain Api
  * @param apisessionid Api Session ID
  * @param dnsrecords DNS Record to update
+ * @param apiurl The netcup API URL
  * @return Boolean for success
  */
-function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dnsrecords)
+function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dnsrecords, $apiurl)
 {
     $updateDnsZoneData = array(
         'action' => 'updateDnsRecords',
@@ -494,7 +507,7 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
 
     $request = json_encode($updateDnsZoneData);
 
-    $result = sendRequest($request);
+    $result = sendRequest($request, $apiurl);
 
     if ($result['status'] === SUCCESS) {
         return true;
@@ -508,20 +521,25 @@ function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dns
  * Updates the DNS A or AAAA record based on input IP address
  * @param infoDnsRecords the netcup DNS record info
  * @param publicIP the IP address to be updated via the API
- * @param apisessionid Api Key for Netcup domain Api
+ * @param apisessionid The session id
+ * @param hostsipv6 The ipv6 hosts which should be updated
+ * @param hostsipv4 The ipv4 hosts which should be updated
+ * @param domain The netcup hosted domain which should be updated
+ * @param customernr The netcup customer number
+ * @param apikey Api Key for Netcup domain Api
  * @return Boolean for success
  */
-function updateIP($infoDnsRecords, $publicIP, $apisessionid)
+function updateIP($infoDnsRecords, $publicIP, $apisessionid, $hostsipv6, $hostsipv4, $domain, $customernr, $apikey, $apiurl)
 {
     // set record type and ip type strings based on iput IP address type
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         $recordType = "AAAA";
         $ipType = "IPv6";
-	$hosts = array_map('trim', explode(",", HOST_IPv6));
+	$hosts = array_map('trim', explode(",", $hostsipv6));
     } else {
         $recordType = "A";
         $ipType = "IPv4";
-	$hosts = array_map('trim', explode(",", HOST_IPv4));
+	$hosts = array_map('trim', explode(",",$hostsipv4));
     }
 
     //loop at hosts to update
@@ -564,7 +582,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid)
                 outputStdout(sprintf($ipType." address for host %s has changed. Before: %s; Now: %s",$host, $record['destination'], $publicIP));
                 $foundHosts[0]['destination'] = $publicIP;
                 //Update the record
-                if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHosts)) {
+                if (updateDnsRecords($domain, $customernr, $apikey, $apisessionid, $foundHosts, $apiurl)) {
                     outputStdout($ipType." address updated successfully!");
                 } else {
                     // clear ip cache in order to reconnect to API in any case on next run of script
