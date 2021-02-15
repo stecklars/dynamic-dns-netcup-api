@@ -23,7 +23,7 @@ if ($config_array['USE_IPV4'] === 'true') {
 	outputStdout(sprintf("Updating DNS records for host(s) '%s' (A record) on domain %s", $config_array['HOST_IPv4'], $config_array['DOMAIN']));
 
 	// get public IPv4 address
-	$publicIPv4 = $config_array['USE_FRITZBOX'] ? getCurrentPublicIPv4FromFritzBox($config_array['FRITZBOX_IP']) : getCurrentPublicIPv4();
+	$publicIPv4 = $config_array['USE_FRITZBOX']  === 'true' ? getCurrentPublicIPv4FromFritzBox($config_array['FRITZBOX_IP']) : getCurrentPublicIPv4();
 
 	//If we couldn't determine a valid public IPv4 address: disable further IPv4 assessment
 	if (!$publicIPv4) {

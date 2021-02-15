@@ -101,7 +101,7 @@ function outputWarning($message)
     fwrite(STDERR, $output);
 
     // mail warning
-    if ( $config_array['SEND_MAIL']) {
+    if ($config_array['SEND_MAIL'] === 'true') {
         mailMessage($output, $config_array['MAIL_RECIPIENT'], $config_array['DOMAIN']);
     }
 }
@@ -120,7 +120,7 @@ function outputStderr($message)
     fwrite(STDERR, $output);
 
     // mail error
-    if ( $config_array['SEND_MAIL']) {
+    if ($config_array['SEND_MAIL'] === 'true') {
         mailMessage($output, $config_array['MAIL_RECIPIENT'], $config_array['DOMAIN']);
     }
 }
