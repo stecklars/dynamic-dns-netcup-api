@@ -3,8 +3,8 @@
 
 ## Features
 * Determines public IP addresses (IPv4 and IPv6) without external third party look ups.
-* * using local adapter for IPv6
-* * using local FritzBox for IPv4. Note, using external service for determining the IPv4 addresses is possible if no fritz box is available or as a fallback
+    * using local adapter for IPv6
+    * using local FritzBox for IPv4. Note, using external service for determining the IPv4 addresses is possible if no fritz box is available or as a fallback
 * Caching the IP provided to netcup DNS to avoid unnecessary API calls
 * Updating of a specific or multiple subdomains or domain root
 * E-Mail alert in case updating/getting new IP addresses runs in warinings/errors
