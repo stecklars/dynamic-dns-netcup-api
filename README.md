@@ -1,34 +1,30 @@
 # Dynamic DNS client for netcup DNS API
-**A simple dynamic DNS client written in PHP for use with the netcup DNS API.** This project is a fork of https://github.com/stecklars/dynamic-dns-netcup-api. Please also refer to the dockernized version under https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api.
+**A dynamic DNS client written in PHP for use with the netcup DNS API.** This project is a fork of https://github.com/stecklars/dynamic-dns-netcup-api. Please also refer to the dockernized version under https://hub.docker.com/r/mm28ajos/docker-dynamic-dns-netcup-api.
+
+## Features
+* Determines public IP addresses (IPv4 and IPv6) without external third party look ups.
+* * using local adapter for IPv6
+* * using local FritzBox for IPv4. Note, using external service for determining the IPv4 addresses is possible if no fritz box is available or as a fallback
+* Caching the IP provided to netcup DNS to avoid unnecessary API calls
+* Updating of a specific or multiple subdomains or domain root
+* E-Mail alert in case updating/getting new IP addresses runs in warinings/errors
+* configure hosts for updating IPv4 and IPv6 separately
+* Creation of DNS record, if it does not already exist for the subdomain given
+* If configured, lowers TTL to 300 seconds for the domain on each run if necessary
 
 ## Requirements
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
-  * You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
+* You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
 * netcup API key and API password, which can be created within your CCP at https://ccp.netcup.net
-* PHP-CLI with CURL, JSON and Openssl extension or run it with docker-compose: https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api
 * A domain :wink:
-
-## Features
-### Implemented
-* All necessary API functions for DNS actions implemented (REST API)
-* Determines correct public IP addresses (IPv4 and IPv6) without external third party look ups using local adapter for IPV or local FritzBox (external API call for determining the IPv4 addresses possible if no fritz box available or as fallback)
-* Caching the IP provided to netcup DNS to avoid unnecessary API calls
-* Updating of a specific subdomain, domain root, or multiple subdomains
-* configure hosts for updating IPv4 and IPv6 separately
-* Creation of DNS record, if it does not already exist
-* If configured, lowers TTL to 300 seconds for the domain on each run if necessary
-* Hiding output (quiet option)
-* Dockernized version available, refer to https://hub.docker.com/r/mm28ajos/dynamic-dns-netcup-api
-
-### Missing
-* Support for domain root and wildcard
-* Probably a lot more :grin: – to be continued...
 
 ## Getting started
 ### Download
 Download the [latest version](https://github.com/mm28ajos/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
 
 `$ git clone https://github.com/mm28ajos/dynamic-dns-netcup-api/dynamic-dns-netcup-api.git`
+
+Alternativly, use docker. Refer to https://hub.docker.com/r/mm28ajos/docker-dynamic-dns-netcup-api.
 
 ### Configuration
 Configuration is very simple: Just fill out `config.ini` with the required values. The options are explained in there.
