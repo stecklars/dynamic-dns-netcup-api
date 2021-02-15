@@ -1,24 +1,4 @@
 <?php
-
-// load config file
-$config_array = parse_ini_file("config.ini", false, true);
-
-//Constants
-const SUCCESS = 'success';
-const IP_CACHE_FILE = '/ipcache';
-
-//Declare possbile options
-$quiet = false;
-
-//Check passed options
-if (isset($argv)){
-    foreach ($argv as $option) {
-        if ($option === "--quiet") {
-            $quiet = true;
-        }
-    }
-}
-
 /**
  * Clear IP Cache
  */
@@ -591,6 +571,30 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid, $hostsipv6, $hostsi
                 //No, it hasn't changed.
                 outputStdout(sprintf($ipType." for host %s address hasn't changed. Current ".$ipType." address: ".$publicIP, $host));
             }
+        }
+    }
+}
+
+// load config file
+if (file_exists("config.ini")) {
+    $config_array = parse_ini_file("config.ini", false, true);
+} else {
+    outputStdout("No config.ini found. Using only environment variables.");
+    $config_array = array();
+}
+
+//Constants
+const SUCCESS = 'success';
+const IP_CACHE_FILE = '/ipcache';
+
+//Declare possbile options
+$quiet = false;
+
+//Check passed options
+if (isset($argv)){
+    foreach ($argv as $option) {
+        if ($option === "--quiet") {
+            $quiet = true;
         }
     }
 }
