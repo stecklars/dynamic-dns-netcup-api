@@ -270,14 +270,13 @@ function getValidityIPv6($ipv6information, $ipv6address)
 function getCurrentPublicIPv6($ipv6interface, $nouseipv6privacyextensions)
 {
     $ipv6addresses = preg_split("/((\r?\n)|(\r\n?))/", shell_exec("ip -6 addr show ".$ipv6interface." | grep 'scope' | grep -Po '(?<=inet6 )[\da-z:]+'"));
-    
+
     // filter non-valid, private and reserved range addresses
     $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (filter_var($var, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE));});
-   
-    // filter non-EUI-64-Identifier addresses
+
+    // only use EUI-64-Identifier addresses?
     if ($nouseipv6privacyextensions === 'true') {
-        // filter EUI-64-Identifier addresses
-        $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') !== 88); });
+        $ipv6addresses = array_filter($ipv6addresses, function ($var) { return (strpos(ipv6_to_binary($var), '1111111111111110') == 88); });
     }
 
     if (sizeof($ipv6addresses) === 1) {
