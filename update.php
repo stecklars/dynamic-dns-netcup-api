@@ -15,6 +15,9 @@ $ipcache = getIPCache();
 $ipv4change = false;
 $ipv6change = false;
 
+$ipv4available = true;
+$ipv6available = true;
+
 $publicIPv4 = '127.0.0.1';
 $publicIPv6 = '::1';
 
@@ -27,7 +30,7 @@ if ($config_array['USE_IPV4'] === 'true') {
 
 	//If we couldn't determine a valid public IPv4 address: disable further IPv4 assessment
 	if (!$publicIPv4) {
-		$config_array['USE_IPV4'] = 'false';
+		$ipv4available = false;
 	} elseif ($ipcache !== false) {
 		// check whether public IPv4 has changed according to IP cache
 		if ($ipcache['ipv4'] !== $publicIPv4) {
@@ -48,7 +51,7 @@ if ($config_array['USE_IPV6'] === 'true') {
 
 	//If we couldn't determine a valid public IPv6 address: disable further IPv6 assessment
 	if (!$publicIPv6) {
-		$config_array['USE_IPV6'] = 'false';
+		$ipv6available = false;
 	} elseif ($ipcache !== false) {
 		// check whether public IPv6 has changed according to IP cache
 		if ($ipcache['ipv6'] !== $publicIPv6) {
@@ -61,7 +64,7 @@ if ($config_array['USE_IPV6'] === 'true') {
 }
 
 // Login to to netcup via API if public ipv4 or public ipv6 is available AND no IP cache is available or changes need to be updated
-if (($config_array['USE_IPV6'] === 'true' | $config_array['USE_IPV4'] === 'true') & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
+if (($ipv6available | $ipv4available ) & ($ipcache === false | $ipv4change === true | $ipv6change === true)) {
 
 	// Login
 	if ($apisessionid = login($config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIPASSWORD'], $config_array['APIURL'])) {
@@ -107,12 +110,12 @@ if (($config_array['USE_IPV6'] === 'true' | $config_array['USE_IPV4'] === 'true'
 	}
 
 	// update ipv4
-	if ($config_array['USE_IPV4'] === 'true') {
+	if ($ipv4available) {
 		updateIP($infoDnsRecords, $publicIPv4, $apisessionid, $config_array['HOST_IPv6'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIURL']);
 	}
 
 	// update ipv6
-	if ($config_array['USE_IPV6'] === 'true') {
+	if ($ipv6available) {
 		updateIP($infoDnsRecords, $publicIPv6, $apisessionid, $config_array['HOST_IPv6'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIURL']);
 	}
 
