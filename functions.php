@@ -549,7 +549,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid, $hostsipv6, $hostsi
 
         //If the host with A/AAAA record exists more than one time...
         if (count($foundHosts) > 1) {
-            outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.php. Exiting.", $host));
+            outputStderr(sprintf("Found multiple ".$recordType." records for the host %s – Please specify a host for which only a single ".$recordType." record exists in config.ini. Exiting.", $host));
             exit(1);
         }
 
@@ -575,7 +575,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid, $hostsipv6, $hostsi
 }
 
 // load config file
-if (file_exists("config.ini")) {
+if (file_exists(dirname(__FILE__)."/config.ini")) {
     $config_array = parse_ini_file("config.ini", false, true);
 } else {
     outputStdout("No config.ini found. Using only environment variables.");
