@@ -1,0 +1,8 @@
+{
+  "name": "stecklars/dynamic-dns-netcup-api",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "mrkriskrisu/netcup-api": "0.0.3"
+  }
+}

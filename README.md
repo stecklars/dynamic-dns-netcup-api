@@ -8,6 +8,7 @@
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
   * You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
 * netcup API key and API password, which can be created within your CCP at https://ccp.netcup.net
+* [Composer](https://getcomposer.org/)
 * PHP-CLI with CURL extension
 * A domain :wink:
 
@@ -31,6 +32,8 @@
 Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
 
 `$ git clone https://github.com/stecklars/dynamic-dns-netcup-api.git`
+
+Then run `composer update` on your machine to check and install the dependencies.
 
 I'm always trying to keep the master branch stable.
 

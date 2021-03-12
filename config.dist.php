@@ -17,6 +17,3 @@ define('USE_IPV6', false);
 
 //If set to true, this will change TTL to 300 seconds on every run if necessary.
 define('CHANGE_TTL', true);
-
-// Use netcup DNS REST-API
-define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');
