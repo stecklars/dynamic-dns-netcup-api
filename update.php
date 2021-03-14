@@ -8,6 +8,9 @@ outputStdout("Running dynamic DNS client for netcup 2.0");
 outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 
+// set constants
+define("APIURL", "https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON");
+
 // get cached IP addresses
 $ipcache = getIPCache();
 
@@ -72,7 +75,7 @@ if ($config_array['USE_IPV6'] === 'true') {
 if ($ipv4change === true | $ipv6change === true) {
 
 	// Login
-	if ($apisessionid = login($config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIPASSWORD'], $config_array['APIURL'])) {
+	if ($apisessionid = login($config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIPASSWORD'], APIURL)) {
 		outputStdout("Logged in successfully!");
 	} else {
 		// clear ip cache in order to reconnect to API in any case on next run of script 
@@ -81,7 +84,7 @@ if ($ipv4change === true | $ipv6change === true) {
 	}
 
 	// Let's get infos about the DNS zone
-	if ($infoDnsZone = infoDnsZone($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, $config_array['APIURL'])) {
+	if ($infoDnsZone = infoDnsZone($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, APIURL)) {
 		outputStdout("Successfully received Domain info.");
 	} else {
 		// clear ip cache in order to reconnect to API in any case on next run of script
@@ -98,7 +101,7 @@ if ($ipv4change === true | $ipv6change === true) {
 	if ($config_array['CHANGE_TTL'] === 'true' && $infoDnsZone['responsedata']['ttl'] !== "300") {
 		$infoDnsZone['responsedata']['ttl'] = 300;
 
-		if (updateDnsZone($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, $infoDnsZone['responsedata'], $config_array['APIURL'])) {
+		if (updateDnsZone($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, $infoDnsZone['responsedata'], APIURL)) {
 			outputStdout("Lowered TTL to 300 seconds successfully.");
 		} else {
 			outputStderr("Failed to set TTL... Continuing.");
@@ -106,7 +109,7 @@ if ($ipv4change === true | $ipv6change === true) {
 	}
 
 	//Let's get the DNS record data.
-	if ($infoDnsRecords = infoDnsRecords($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, $config_array['APIURL'])) {
+	if ($infoDnsRecords = infoDnsRecords($config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, APIURL)) {
 		outputStdout("Successfully received DNS record data.");
 	} else {
 		// clear ip cache in order to reconnect to API in any case on next run of script
@@ -116,16 +119,16 @@ if ($ipv4change === true | $ipv6change === true) {
 
 	// update ipv4
 	if ($ipv4change) {
-		updateIP($infoDnsRecords, $publicIPv4, $apisessionid, $config_array['HOST_IPv4'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIURL']);
+		updateIP($infoDnsRecords, $publicIPv4, $apisessionid, $config_array['HOST_IPv4'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], APIURL);
 	}
 
 	// update ipv6
 	if ($ipv6change) {
-		updateIP($infoDnsRecords, $publicIPv6, $apisessionid, $config_array['HOST_IPv6'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], $config_array['APIURL']);
+		updateIP($infoDnsRecords, $publicIPv6, $apisessionid, $config_array['HOST_IPv6'], $config_array['HOST_IPv4'], $config_array['DOMAIN'], $config_array['CUSTOMERNR'], $config_array['APIKEY'], APIURL);
 	}
 
 	//Logout
-	if (logout($config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, $config_array['APIURL'])) {
+	if (logout($config_array['CUSTOMERNR'], $config_array['APIKEY'], $apisessionid, APIURL)) {
 		outputStdout("Logged out successfully!");
 	}
 
