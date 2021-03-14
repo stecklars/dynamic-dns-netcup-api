@@ -9,7 +9,7 @@ outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 
 // set constants
-$APIURL = 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON'
+$APIURL = 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON';
 
 // get cached IP addresses
 $ipcache = getIPCache();
