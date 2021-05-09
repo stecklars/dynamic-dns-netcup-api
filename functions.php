@@ -578,7 +578,7 @@ function updateIP($infoDnsRecords, $publicIP, $apisessionid, $hostsipv6, $hostsi
 if (file_exists(dirname(__FILE__)."/config.ini")) {
     $config_array = parse_ini_file("config.ini", false, true);
 } else {
-    outputStdout("No config.ini found. Using only environment variables.");
+    outputStdout("No config.ini found.");
     $config_array = array();
 }
 
