@@ -135,4 +135,9 @@ if ($ipv4change === true | $ipv6change === true) {
 	// update ip cache
 	setIPCache($publicIPv4, $publicIPv6);
 }
+
+// restart docker container(s) if ipv6 changed and setting is activated
+if ($ipv6change === true && $config_array['RESTART_CONTAINERS'] === 'true') {
+	shell_exec("docker restart ".explode(",", array_map('trim', $config_array['CONTAINERS'])));
+}
 ?>
