@@ -137,7 +137,9 @@ if ($ipv4change === true | $ipv6change === true) {
 }
 
 // restart docker container(s) if ipv6 changed and setting is activated
-if ($ipv6change === true && $config_array['RESTART_CONTAINERS'] === 'true') {
-	shell_exec("docker restart ".explode(",", array_map('trim', $config_array['CONTAINERS'])));
+if (array_key_exists('RESTART_CONTAINERS', $config_array)) {
+	if ($ipv6change === true && $config_array['RESTART_CONTAINERS'] === 'true') {
+		shell_exec("docker restart ".explode(",", array_map('trim', $config_array['CONTAINERS'])));
+	}
 }
 ?>
