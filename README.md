@@ -11,7 +11,7 @@
 * configure hosts for updating IPv4 and IPv6 separately
 * Creation of DNS record, if it does not already exist for the subdomain given
 * If configured, lowers TTL to 300 seconds for the domain on each run if necessary
-* Restart docker containers on IPv6 address change
+* Restart docker containers on IP address change
 
 ## Requirements
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
