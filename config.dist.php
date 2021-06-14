@@ -15,6 +15,9 @@ define('HOST', 'server');
 //Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
 define('USE_IPV6', false);
 
+// Set this to false if you have set USE_IPV6 to true and only want IPv6 updates.
+define('USE_IPV4', true);
+
 //If set to true, this will change TTL to 300 seconds on every run if necessary.
 define('CHANGE_TTL', true);
 
