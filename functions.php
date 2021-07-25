@@ -194,9 +194,9 @@ function getCurrentPublicIPv4FromFritzBox($fritzboxadress)
     curl_close ($ch);
 
     //search for IPv4 in result
-    preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $result, $match);
+    $numHits = preg_match_all("/<NewExternalIPAddress>(.*)<\/NewExternalIPAddress>/i", $result, $match);
 
-    if (!empty($match)) {
+    if ($numHits == 1) {
         return $match[1][0];
     } else {
         //fallback to ipify
