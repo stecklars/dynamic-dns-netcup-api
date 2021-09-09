@@ -3,7 +3,7 @@
 //Try to load required config.php, if it fails, output error, as user probably has not followed "Getting started" guide.
 if (!include_once('config.php')) {
     outputStderr("Could not open config.php. Please follow the getting started guide and provide a valid config.php file. Exiting.");
-    die();
+    exit(1);
 }
 
 //Declare possible options
@@ -56,12 +56,12 @@ function sendRequest($request)
     // Some error handling
     if (isset($curl_error_msg)) {
         outputStderr("cURL Error: ($curl_errno) $curl_error_msg - Exiting.");
-        die();
+        exit(1);
     }
 
     if (empty($result)) {
         outputStderr("Did not receive a valid response from netcup API (the response was empty). However, I also did not get a curl error or HTTP status code indicating an error. Unknown error. Exiting.");
-        die();
+        exit(1);
     }
 
     // If everything seems to be ok, proceed...
