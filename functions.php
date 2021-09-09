@@ -1,20 +1,35 @@
 <?php
 
-require_once 'config.php';
+//Try to load required config.php, if it fails, output error, as user probably has not followed "Getting started" guide.
+if (!include_once('config.php')) {
+    outputStderr("Could not open config.php. Please follow the getting started guide and provide a valid config.php file. Exiting.");
+    die();
+}
 
-//Declare possbile options
+//Declare possible options
 $quiet = false;
 
 //Check passed options
 if(isset($argv)){
-	foreach ($argv as $option) {
-		if ($option === "--quiet") {
-			$quiet = true;
-		}
-	}
+    foreach ($argv as $option) {
+        if ($option === "--quiet") {
+            $quiet = true;
+        }
+    }
 }
 
 const SUCCESS = 'success';
+
+
+//Checks if curl PHP extension is installed
+function _is_curl_installed() {
+    if  (in_array  ('curl', get_loaded_extensions())) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
 
 // Sends $request to netcup Domain API and returns the result
 function sendRequest($request)
@@ -22,15 +37,34 @@ function sendRequest($request)
     $ch = curl_init(APIURL);
     $curlOptions = array(
         CURLOPT_POST => 1,
+        CURLOPT_TIMEOUT => 30,
         CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_FAILONERROR => 1,
         CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
         CURLOPT_POSTFIELDS => $request,
     );
     curl_setopt_array($ch, $curlOptions);
 
     $result = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        $curl_errno = curl_errno($ch);
+        $curl_error_msg = curl_error($ch);
+    }
     curl_close($ch);
 
+    // Some error handling
+    if (isset($curl_error_msg)) {
+        outputStderr("cURL Error: ($curl_errno) $curl_error_msg - Exiting.");
+        die();
+    }
+
+    if (empty($result)) {
+        outputStderr("Did not receive a valid response from netcup API (the response was empty). However, I also did not get a curl error or HTTP status code indicating an error. Unknown error. Exiting.");
+        die();
+    }
+
+    // If everything seems to be ok, proceed...
     $result = json_decode($result, true);
 
     return $result;

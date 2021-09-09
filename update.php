@@ -1,3 +1,4 @@
+#!/usr/bin/env php
 <?php
 
 //Load necessary functions
@@ -7,6 +8,11 @@ outputStdout("=============================================");
 outputStdout("Running dynamic DNS client for netcup 2.0");
 outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
+
+if (! _is_curl_installed()) {
+    outputStderr("cURL PHP extension is not installed. Please install the cURL PHP extension, otherwise the script will not work. Exiting.");
+    die();
+}
 
 outputStdout(sprintf("Updating DNS records for host %s on domain %s\n", HOST, DOMAIN));
 
