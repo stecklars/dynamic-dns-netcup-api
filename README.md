@@ -35,6 +35,7 @@ Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-ap
 I'm always trying to keep the master branch stable.
 
 Then, allow `update.php` to be executed by your user:
+
 `chmod u+x update.php`
 
 ### Configuration
