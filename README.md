@@ -34,6 +34,9 @@ Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-ap
 
 I'm always trying to keep the master branch stable.
 
+Then, allow `update.php` to be executed by your user:
+`chmod u+x update.php`
+
 ### Configuration
 Configuration is very simple: 
 * Copy `config.dist.php` to `config.php`
@@ -41,12 +44,12 @@ Configuration is very simple:
 * Fill out `config.php` with the required values. The options are explained in there.
 
 ### How to use
-`php update.php`
+`./update.php`
 
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
 
 ### CLI options
-Just add these Options after the command like `php update.php --quiet`
+Just add these Options after the command like `./update.php --quiet`
 
 | option        | function                                                  |
 | ------------- |----------------------------------------------------------:|
