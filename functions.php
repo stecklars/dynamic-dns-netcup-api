@@ -106,7 +106,7 @@ function outputStderr($message)
 //Returns current public IPv4 address.
 function getCurrentPublicIPv4()
 {
-    $publicIP = rtrim(file_get_contents('https://api.ipify.org'));
+    $publicIP = rtrim(@file_get_contents('https://api.ipify.org'));
 
     //Let's check that this is really a IPv4 address, just in case...
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -116,7 +116,7 @@ function getCurrentPublicIPv4()
     outputWarning("https://api.ipify.org didn't return a valid IPv4 address. Trying fallback API https://ip4.seeip.org");
     //If IP is invalid, try another API
     //The API adds an empty line, so we remove that with rtrim
-    $publicIP = rtrim(file_get_contents('https://ip4.seeip.org'));
+    $publicIP = rtrim(@file_get_contents('https://ip4.seeip.org'));
 
     //Let's check the result of the second API
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -130,7 +130,7 @@ function getCurrentPublicIPv4()
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
-    $publicIP = rtrim(file_get_contents('https://ip6.seeip.org'));
+    $publicIP = rtrim(@file_get_contents('https://ip6.seeip.org'));
 
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         return $publicIP;
@@ -138,7 +138,7 @@ function getCurrentPublicIPv6()
 
     outputWarning("https://ip6.seeip.org didn't return a valid IPv6 address.");
     //If IP is invalid, try another API
-    $publicIP = rtrim(file_get_contents('https://v6.ident.me/'));
+    $publicIP = rtrim(@file_get_contents('https://v6.ident.me/'));
 
     //Let's check the result of the second API
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
