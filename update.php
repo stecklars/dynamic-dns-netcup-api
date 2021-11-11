@@ -16,6 +16,17 @@ if (! _is_curl_installed()) {
 
 outputStdout(sprintf("Updating DNS records for host %s on domain %s\n", HOST, DOMAIN));
 
+//If we couldn't determine a valid public IPv4 address
+if (!$publicIPv4 = getCurrentPublicIPv4()) {
+    outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
+    exit(1);
+}
+//If we couldn't determine a valid public IPv6 address
+if (USE_IPV6 === true && !$publicIPv6 = getCurrentPublicIPv6()) {
+    outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
+    exit(1);
+}
+
 // Login
 if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
     outputStdout("Logged in successfully!");
@@ -85,12 +96,6 @@ if (count($foundHostsV4) > 1) {
     exit(1);
 }
 
-//If we couldn't determine a valid public IPv4 address
-if (!$publicIPv4 = getCurrentPublicIPv4()) {
-    outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
-    exit(1);
-}
-
 $ipv4change = false;
 
 //Has the IP changed?
@@ -147,12 +152,6 @@ if (USE_IPV6 === true) {
     //If the host with AAAA record exists more than one time...
     if (count($foundHostsV6) > 1) {
         outputStderr(sprintf("Found multiple AAAA records for the host %s – Please specify a host for which only a single AAAA record exists in config.php. Exiting.", HOST));
-        exit(1);
-    }
-
-    //If we couldn't determine a valid public IPv6 address
-    if (!$publicIPv6 = getCurrentPublicIPv6()) {
-        outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
         exit(1);
     }
 
