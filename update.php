@@ -20,11 +20,32 @@ outputStdout(sprintf("Updating DNS records for host %s on domain %s\n", HOST, DO
 if (!$publicIPv4 = getCurrentPublicIPv4()) {
     outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
     exit(1);
+    }
+    //If IPv4 Address not changed and option --force not set
+    elseif (checkcachedip($dir, $cip4, $publicIPv4) && !$force) {
+            outputStdout("IPv4 Address not changed & Option --force disabled. Exiting.");
+            exit(1);
+    }
+    else {
+      //write new valid public IPv4 address to local file
+      file_put_contents($dir.$cip4, $publicIPv4);
 }
-//If we couldn't determine a valid public IPv6 address
-if (USE_IPV6 === true && !$publicIPv6 = getCurrentPublicIPv6()) {
-    outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
-    exit(1);
+
+if (USE_IPV6) {
+    //If we couldn't determine a valid public IPv6 address
+    if (!$publicIPv6 = getCurrentPublicIPv6()) {
+        outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
+        exit(1);
+    }
+    //If IPv6 Address not changed and option --force not set
+    elseif (checkcachedip($dir, $cip6, $publicIPv6) && !$force) {
+            outputStdout("IPv6 Address not changed & Option --force disabled. Exiting.");
+            exit(1);
+    }
+    else {
+      //write new valid public IPv6 address to local file
+      file_put_contents($dir.$cip6, $publicIPv6);
+    }
 }
 
 // Login

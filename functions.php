@@ -8,12 +8,16 @@ if (!include_once('config.php')) {
 
 //Declare possible options
 $quiet = false;
+$force = false;
 
 //Check passed options
 if(isset($argv)){
     foreach ($argv as $option) {
         if ($option === "--quiet") {
             $quiet = true;
+        }
+        if ($option === "--force") {
+            $force = true;
         }
     }
 }
@@ -28,6 +32,26 @@ function _is_curl_installed() {
     }
     else {
         return false;
+    }
+}
+
+//declare some variables
+$dir = getcwd();
+$cip4 = '/cip4.log';
+$cip6 = '/cip6.log';
+
+function checkcachedip($dir, $ip, $publicIP) {
+    //Checks if local files exists
+    if (!file_exists($dir.$ip)) {
+        file_put_contents($dir.$ip, '');
+        chmod($dir.$ip, 0600);
+    }
+    //Compare local ip - public ip
+    if (trim(file_get_contents($dir.$ip)) === $publicIP) {
+       return true;
+       }
+       else {
+       return false;
     }
 }
 
