@@ -14,7 +14,7 @@ if (! _is_curl_installed()) {
     exit(1);
 }
 
-outputStdout(sprintf("Updating DNS records for host %s on domain %s\n", HOST, DOMAIN));
+outputStdout(sprintf("Updating DNS records for host(s) \"%s\" on domain %s\n", HOSTARRAY, DOMAIN));
 
 // Login
 if ($apisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD)) {
@@ -52,77 +52,16 @@ if ($infoDnsRecords = infoDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid))
     exit(1);
 }
 
-//Find the host defined in config.php
-$foundHostsV4 = array();
+//Handle individual hosts
+foreach(explode(",", HOSTARRAY) AS $host) {
+    outputStdout(sprintf("Updating DNS records for host \"%s\" on domain %s", $host, DOMAIN));
 
-foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
-    if ($record['hostname'] === HOST && $record['type'] === "A") {
-        $foundHostsV4[] = array(
-            'id' => $record['id'],
-            'hostname' => $record['hostname'],
-            'type' => $record['type'],
-            'priority' => $record['priority'],
-            'destination' => $record['destination'],
-            'deleterecord' => $record['deleterecord'],
-            'state' => $record['state'],
-        );
-    }
-}
-
-//If we can't find the host, create it.
-if (count($foundHostsV4) === 0) {
-    outputStdout(sprintf("A record for host %s doesn't exist, creating necessary DNS record.", HOST));
-    $foundHostsV4[] = array(
-        'hostname' => HOST,
-        'type' => 'A',
-        'destination' => 'newly created Record',
-    );
-}
-
-//If the host with A record exists more than one time...
-if (count($foundHostsV4) > 1) {
-    outputStderr(sprintf("Found multiple A records for the host %s – Please specify a host for which only a single A record exists in config.php. Exiting.", HOST));
-    exit(1);
-}
-
-//If we couldn't determine a valid public IPv4 address
-if (!$publicIPv4 = getCurrentPublicIPv4()) {
-    outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
-    exit(1);
-}
-
-$ipv4change = false;
-
-//Has the IP changed?
-foreach ($foundHostsV4 as $record) {
-    if ($record['destination'] !== $publicIPv4) {
-        //Yes, it has changed.
-        $ipv4change = true;
-        outputStdout(sprintf("IPv4 address has changed. Before: %s; Now: %s", $record['destination'], $publicIPv4));
-    } else {
-        //No, it hasn't changed.
-        outputStdout("IPv4 address hasn't changed. Current IPv4 address: ".$publicIPv4);
-    }
-}
-
-//Yes, it has changed.
-if ($ipv4change === true) {
-    $foundHostsV4[0]['destination'] = $publicIPv4;
-    //Update the record
-    if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHostsV4)) {
-        outputStdout("IPv4 address updated successfully!");
-    } else {
-        exit(1);
-    }
-}
-
-if (USE_IPV6 === true) {
     //Find the host defined in config.php
-    $foundHostsV6 = array();
+    $foundHostsV4 = array();
 
     foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
-        if ($record['hostname'] === HOST && $record['type'] === "AAAA") {
-            $foundHostsV6[] = array(
+        if ($record['hostname'] === $host && $record['type'] === "A") {
+            $foundHostsV4[] = array(
                 'id' => $record['id'],
                 'hostname' => $record['hostname'],
                 'type' => $record['type'],
@@ -135,49 +74,115 @@ if (USE_IPV6 === true) {
     }
 
     //If we can't find the host, create it.
-    if (count($foundHostsV6) === 0) {
-        outputStdout(sprintf("AAAA record for host %s doesn't exist, creating necessary DNS record.", HOST));
-        $foundHostsV6[] = array(
-            'hostname' => HOST,
-            'type' => 'AAAA',
+    if (count($foundHostsV4) === 0) {
+        outputStdout(sprintf("A record for host %s doesn't exist, creating necessary DNS record.", $host));
+        $foundHostsV4[] = array(
+            'hostname' => $host,
+            'type' => 'A',
             'destination' => 'newly created Record',
         );
     }
 
-    //If the host with AAAA record exists more than one time...
-    if (count($foundHostsV6) > 1) {
-        outputStderr(sprintf("Found multiple AAAA records for the host %s – Please specify a host for which only a single AAAA record exists in config.php. Exiting.", HOST));
+    //If the host with A record exists more than one time...
+    if (count($foundHostsV4) > 1) {
+        outputStderr(sprintf("Found multiple A records for the host %s – Please specify a host for which only a single A record exists in config.php. Exiting.", $host));
         exit(1);
     }
 
-    //If we couldn't determine a valid public IPv6 address
-    if (!$publicIPv6 = getCurrentPublicIPv6()) {
-        outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
+    //If we couldn't determine a valid public IPv4 address
+    if (!$publicIPv4 = getCurrentPublicIPv4()) {
+        outputStderr("Main API and fallback API didn't return a valid IPv4 address. Exiting.");
         exit(1);
     }
 
-    $ipv6change = false;
+    $ipv4change = false;
 
     //Has the IP changed?
-    foreach ($foundHostsV6 as $record) {
-        if ($record['destination'] !== $publicIPv6) {
+    foreach ($foundHostsV4 as $record) {
+        if ($record['destination'] !== $publicIPv4) {
             //Yes, it has changed.
-            $ipv6change = true;
-            outputStdout(sprintf("IPv6 address has changed. Before: %s; Now: %s", $record['destination'], $publicIPv6));
+            $ipv4change = true;
+            outputStdout(sprintf("IPv4 address has changed. Before: %s; Now: %s", $record['destination'], $publicIPv4));
         } else {
             //No, it hasn't changed.
-            outputStdout("IPv6 address hasn't changed. Current IPv6 address: ".$publicIPv6);
+            outputStdout("IPv4 address hasn't changed. Current IPv4 address: ".$publicIPv4);
         }
     }
 
     //Yes, it has changed.
-    if ($ipv6change === true) {
-        $foundHostsV6[0]['destination'] = $publicIPv6;
+    if ($ipv4change === true) {
+        $foundHostsV4[0]['destination'] = $publicIPv4;
         //Update the record
-        if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHostsV6)) {
-            outputStdout("IPv6 address updated successfully!");
+        if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHostsV4)) {
+            outputStdout("IPv4 address updated successfully!");
         } else {
             exit(1);
+        }
+    }
+
+    if (USE_IPV6 === true) {
+        //Find the host defined in config.php
+        $foundHostsV6 = array();
+
+        foreach ($infoDnsRecords['responsedata']['dnsrecords'] as $record) {
+            if ($record['hostname'] === $host && $record['type'] === "AAAA") {
+                $foundHostsV6[] = array(
+                    'id' => $record['id'],
+                    'hostname' => $record['hostname'],
+                    'type' => $record['type'],
+                    'priority' => $record['priority'],
+                    'destination' => $record['destination'],
+                    'deleterecord' => $record['deleterecord'],
+                    'state' => $record['state'],
+                );
+            }
+        }
+
+        //If we can't find the host, create it.
+        if (count($foundHostsV6) === 0) {
+            outputStdout(sprintf("AAAA record for host %s doesn't exist, creating necessary DNS record.", $host));
+            $foundHostsV6[] = array(
+                'hostname' => $host,
+                'type' => 'AAAA',
+                'destination' => 'newly created Record',
+            );
+        }
+
+        //If the host with AAAA record exists more than one time...
+        if (count($foundHostsV6) > 1) {
+            outputStderr(sprintf("Found multiple AAAA records for the host %s – Please specify a host for which only a single AAAA record exists in config.php. Exiting.", $host));
+            exit(1);
+        }
+
+        //If we couldn't determine a valid public IPv6 address
+        if (!$publicIPv6 = getCurrentPublicIPv6()) {
+            outputStderr("Main API and fallback API didn't return a valid IPv6 address. Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
+            exit(1);
+        }
+
+        $ipv6change = false;
+
+        //Has the IP changed?
+        foreach ($foundHostsV6 as $record) {
+            if ($record['destination'] !== $publicIPv6) {
+                //Yes, it has changed.
+                $ipv6change = true;
+                outputStdout(sprintf("IPv6 address has changed. Before: %s; Now: %s", $record['destination'], $publicIPv6));
+            } else {
+                //No, it hasn't changed.
+                outputStdout("IPv6 address hasn't changed. Current IPv6 address: ".$publicIPv6);
+            }
+        }
+
+        //Yes, it has changed.
+        if ($ipv6change === true) {
+            $foundHostsV6[0]['destination'] = $publicIPv6;
+            //Update the record
+            if (updateDnsRecords(DOMAIN, CUSTOMERNR, APIKEY, $apisessionid, $foundHostsV6)) {
+                outputStdout("IPv6 address updated successfully!");
+            } else {
+                exit(1);
+            }
         }
     }
 }
