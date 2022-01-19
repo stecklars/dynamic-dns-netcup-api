@@ -163,7 +163,6 @@ function getCurrentPublicIPv4()
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
-    return "fe80::1";
     $publicIP = rtrim(file_get_contents('https://ip6.seeip.org'));
 
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
