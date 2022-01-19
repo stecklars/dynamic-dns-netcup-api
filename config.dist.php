@@ -15,7 +15,7 @@ define('APIPASSWORD', 'abcdefghijklmnopqrstuvwxyz');
 // To add another domain, finish with ';'.
 // Whitespace (spaces and newlines) are ignored. If you have a very complicated configuration, you may want to use multiple lines. Feel free to do so!
 // Subdomain configuration: Use '@' for the domain without subdomain. Use '*' for all subdomains.
-define('DOMAINLIST', myfirstdomain.com: server, dddns; myseconddomain.com: @, *, some-subdomain)
+define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *, some-subdomain')
 
 
 // The old format for configuring domain + host is still supported, but deprecated. I recommend to switch to the above config,
