@@ -103,6 +103,39 @@ function outputStderr($message)
     fwrite(STDERR, $output);
 }
 
+//Returns list of domains with their subdomains for which we are supposed to perform changes
+function getDomains()
+{
+
+    if (! defined('DOMAINLIST')) {
+        outputWarning("You are using an outdated configuration format (for configuring domain / host). This is deprecated and might become incompatible very soon. Please update to the new configuration format (using 'DOMAINLIST'). Please check the documentation for more information.");
+        if (! defined('DOMAIN')) {
+            outputStderr("Your configuration file is incorrect. You did not configure any domains ('DOMAINLIST' or 'DOMAIN' option (deprecated) in the config). Please check the documentation. Exiting.");
+            exit(1);
+        }
+        if (! defined('HOST')) {
+            outputStderr("Your configuration file is incorrect. You did not configure any hosts (subdomains; 'HOST' option in the config). Please check the documentation. Exiting.");
+            exit(1);
+        }
+        return array(DOMAIN => array(HOST));
+    }
+
+    $domains = preg_replace('/\s+/', '', DOMAINLIST);
+
+    $domainsExploded = explode(';', $domains);
+    foreach ($domainsExploded as $element) {
+        $arr = explode(':', $element);
+        $domainlist[$arr[0]] = $arr[1];
+    }
+
+    foreach ($domainlist as $domain => $subdomainlist) {
+        $subdomainarray = explode(',', $subdomainlist);
+        $result[$domain] = $subdomainarray;
+    }
+
+    return $result;
+}
+
 //Returns current public IPv4 address.
 function getCurrentPublicIPv4()
 {
@@ -130,6 +163,7 @@ function getCurrentPublicIPv4()
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
+    return "fe80::1";
     $publicIP = rtrim(file_get_contents('https://ip6.seeip.org'));
 
     if (filter_var($publicIP, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
