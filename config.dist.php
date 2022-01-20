@@ -4,9 +4,9 @@
 define('CUSTOMERNR', '12345');
 
 
-// Enter your API-Key and -Password here - you can generate them in your CCP at https://ccp.netcup.net
-define('APIKEY', 'abcdefghijklmnopqrstuvwxyz');
+// Enter your API-Password and -Key here - you can generate them in your CCP at https://ccp.netcup.net
 define('APIPASSWORD', 'abcdefghijklmnopqrstuvwxyz');
+define('APIKEY', 'abcdefghijklmnopqrstuvwxyz');
 
 
 // Define domains and subdomains which should be used for dynamic DNS in the following format:
