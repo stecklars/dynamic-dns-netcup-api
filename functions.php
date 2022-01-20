@@ -108,13 +108,13 @@ function getDomains()
 {
 
     if (! defined('DOMAINLIST')) {
-        outputWarning("You are using an outdated configuration format (for configuring domain / host). This is deprecated and might become incompatible very soon. Please update to the new configuration format (using 'DOMAINLIST'). Please check the documentation for more information.");
+        outputWarning("You are using an outdated configuration format (for configuring domain / host). This is deprecated and might become incompatible very soon. Please update to the new configuration format (using 'DOMAINLIST'). Please check the documentation in config.dist.php for more information.");
         if (! defined('DOMAIN')) {
-            outputStderr("Your configuration file is incorrect. You did not configure any domains ('DOMAINLIST' or 'DOMAIN' option (deprecated) in the config). Please check the documentation. Exiting.");
+            outputStderr("Your configuration file is incorrect. You did not configure any domains ('DOMAINLIST' or 'DOMAIN' option (deprecated) in the config). Please check the documentation in config.dist.php. Exiting.");
             exit(1);
         }
         if (! defined('HOST')) {
-            outputStderr("Your configuration file is incorrect. You did not configure any hosts (subdomains; 'HOST' option in the config). Please check the documentation. Exiting.");
+            outputStderr("Your configuration file is incorrect. You did not configure any hosts (subdomains; 'HOST' option in the config). Please check the documentation in config.dist.php. Exiting.");
             exit(1);
         }
         return array(DOMAIN => array(HOST));
