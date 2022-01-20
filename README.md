@@ -7,7 +7,7 @@
 ## Requirements
 * Be a netcup customer: https://www.netcup.de – or for international customers: https://www.netcup.eu
   * You don't have to be a domain reseller to use the necessary functions for this client – every customer with a domain may use it.
-* netcup API key and API password, which can be created within your CCP at https://ccp.netcup.net
+* netcup API key and API password, which can be created within your CCP at https://www.customercontrolpanel.de
 * PHP-CLI with CURL extension
 * A domain :wink:
 
