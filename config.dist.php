@@ -14,7 +14,7 @@ define('APIKEY', 'abcdefghijklmnopqrstuvwxyz');
 // Start with the domain (without subdomain), add ':' after the domain, then add as many subdomains as you want, seperated by ','.
 // To add another domain, finish with ';'.
 // Whitespace (spaces and newlines) are ignored. If you have a very complicated configuration, you may want to use multiple lines. Feel free to do so!
-// Subdomain configuration: Use '@' for the domain without subdomain. Use '*' for all subdomains.
+// Subdomain configuration: Use '@' for the domain without subdomain. Use '*' for wildcard: All subdomains (except ones already defined in DNS).
 define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *, some-subdomain');
 
 
