@@ -2,7 +2,7 @@
 <?php
 
 //Load necessary functions
-require_once 'functions.php';
+require_once __DIR__ . '/functions.php';
 
 outputStdout("=============================================");
 outputStdout("Running dynamic DNS client for netcup 3.0");

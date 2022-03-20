@@ -1,7 +1,7 @@
 <?php
 
 //Try to load required config.php, if it fails, output error, as user probably has not followed "Getting started" guide.
-if (!include_once('config.php')) {
+if (!include_once(__DIR__ . '/config.php')) {
     outputStderr("Could not open config.php. Please follow the getting started guide and provide a valid config.php file. Exiting.");
     exit(1);
 }
