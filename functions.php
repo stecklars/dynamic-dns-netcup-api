@@ -203,6 +203,10 @@ function login($customernr, $apikey, $apipassword)
         return $result['responsedata']['apisessionid'];
     }
 
+    if ($result['statuscode'] === 4013) {
+	$result['longmessage'] = $result['longmessage'] . ' [ADDITIONAL INFORMATION: This error from the netcup DNS API also often indicates that you have supplied wrong API credentials. Please check them in the config file.]';
+    }
+
     outputStderr(sprintf("Error while logging in: %s Exiting.", $result['longmessage']));
     return false;
 }
