@@ -203,6 +203,7 @@ function login($customernr, $apikey, $apipassword)
         return $result['responsedata']['apisessionid'];
     }
 
+    // Error from API: "More than 180 requests per minute. Please wait and retry later. Please contact our customer service to find out if the limitation of requests can be increased."
     if ($result['statuscode'] === 4013) {
 	$result['longmessage'] = $result['longmessage'] . ' [ADDITIONAL INFORMATION: This error from the netcup DNS API also often indicates that you have supplied wrong API credentials. Please check them in the config file.]';
     }
