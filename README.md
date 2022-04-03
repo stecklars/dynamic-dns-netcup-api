@@ -48,12 +48,20 @@ Configuration is very simple:
 
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
 
+It is also possible to specify the IP address as parameter. For example:
+
+`./update.php -ipv4 x.x.x.x -ipv6 x:x:x:x:x:x:x:x`
+
+If you don't specify a custom IP, the current IP will be automatically determined.
+
 ### CLI options
 Just add these Options after the command like `./update.php --quiet`
 
-| option        | function                                                  |
-| ------------- |----------------------------------------------------------:|
-| --quiet       | The script won't output notices, only errors and warnings |
+| option    |                                                  function |
+| --------- | --------------------------------------------------------: |
+| --quiet   | The script won't output notices, only errors and warnings |
+| -4, -IPv4 |                               Specify custom IPv4 address |
+| -6, -IPv6 |                               Specify custom IPv6 address |
 
 ## Example outputs
 ```
