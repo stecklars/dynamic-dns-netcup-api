@@ -18,6 +18,11 @@ if (! _is_curl_installed()) {
     exit(1);
 }
 
+if (USE_IPV4 === false && USE_IPV6 === false){
+    outputStderr("Neither IPv4 nor IPv6 specified, change config. Exiting.");
+    exit(1);
+}
+
 if (USE_IPV4 === true) {
     if(isset($options["4"]) || isset($options["IPv4"])) {
         $publicIPv4 = isset($options["4"]) ? $options["4"] : $options["IPv4"];
