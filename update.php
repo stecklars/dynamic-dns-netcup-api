@@ -10,7 +10,7 @@ outputStdout("This script is not affiliated with netcup.");
 outputStdout("=============================================\n");
 
 $short_options = "4:6:";
-$long_options = ["ipv4:", "ipv6:"];
+$long_options = ["IPv4:", "IPv6:"];
 $options = getopt($short_options, $long_options);
 
 if (! _is_curl_installed()) {
@@ -19,8 +19,8 @@ if (! _is_curl_installed()) {
 }
 
 if (USE_IPV4 === true) {
-    if(isset($options["4"]) || isset($options["ipv4"])) {
-        $publicIPv4 = isset($options["4"]) ? $options["4"] : $options["ipv4"];
+    if(isset($options["4"]) || isset($options["IPv4"])) {
+        $publicIPv4 = isset($options["4"]) ? $options["4"] : $options["IPv4"];
         outputStdout(sprintf('Use custom IPv4: "%s".', $publicIPv4));
     } else {
         // Get current IPv4 address
@@ -32,8 +32,8 @@ if (USE_IPV4 === true) {
 }
 
 if (USE_IPV6 === true) {
-    if(isset($options["6"]) || isset($options["ipv6"])) {
-        $publicIPv6 = isset($options["6"]) ? $options["6"] : $options["ipv6"];
+    if(isset($options["6"]) || isset($options["IPv6"])) {
+        $publicIPv6 = isset($options["6"]) ? $options["6"] : $options["IPv6"];
         outputStdout(sprintf('Use custom IPv6: "%s".', $publicIPv6));
     } else {
         //Get current IPv6 address
