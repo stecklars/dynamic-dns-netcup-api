@@ -28,6 +28,11 @@ define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *
 // define('HOST', 'server');
 
 
+// If set to true, the script will check for your public IPv4 address and add it as an A-Record / change an existing A-Record for the host.
+// You may want to deactivate this, for example, when using a carrier grade NAT (CGNAT).
+// Most likely though, you should keep this active, unless you know otherwise.
+define('USE_IPV4', true);
+
 // If set to true, the script will check for your public IPv6 address too and add it as an AAAA-Record / change an existing AAAA-Record for the host.
 // Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
 define('USE_IPV6', false);
