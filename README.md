@@ -62,4 +62,4 @@ Just add these Options after the command like `./update.php --quiet`
 | -h           | --help             | Outputs this help                                         |
 | -v           | --version          | Outputs the current version of the script                 |
 
-If you have ideas on how to improve this script, please don't hesitate to create an issue or provide me with a pull request. Thank you!
+If you have ideas on how to improve this script, please don't hesitate to create an issue. Thank you!
