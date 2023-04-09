@@ -339,7 +339,7 @@ function getCurrentPublicIPv6()
         }
 
         if (!isIPV6Valid($publicIP) || $publicIP === false) {
-            outputWarning("https://ip6.seeip.org didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback API https://v6.ident.me/");
+            outputWarning("https://ip6.seeip.org didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback API https://v6.ident.me/");
             $url = 'https://v6.ident.me/';
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
