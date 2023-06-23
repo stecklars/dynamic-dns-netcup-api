@@ -292,8 +292,8 @@ function getCurrentPublicIPv4()
         }
 
         if (!isIPV4Valid($publicIP) || $publicIP === false) {
-            outputWarning("https://api.ipify.org didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback API https://ip4.seeip.org");
-            $url = 'https://ip4.seeip.org';
+            outputWarning("https://api.ipify.org didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback API https://ipv4.seeip.org");
+            $url = 'https://ipv4.seeip.org';
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
             if (!wasCurlSuccessful($ch) || !isIPV4Valid($publicIP)) {
@@ -326,7 +326,7 @@ function getCurrentPublicIPv6()
 
     outputStdout('Getting IPv6 address from API.');
 
-    $url = 'https://ip6.seeip.org';
+    $url = 'https://ipv6.seeip.org';
     $ch = initializeCurlHandlerGetIP($url);
     $publicIP = trim(curl_exec($ch));
 
@@ -339,7 +339,7 @@ function getCurrentPublicIPv6()
         }
 
         if (!isIPV6Valid($publicIP) || $publicIP === false) {
-            outputWarning("https://ip6.seeip.org didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback API https://v6.ident.me/");
+            outputWarning("https://ipv6.seeip.org didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback API https://v6.ident.me/");
             $url = 'https://v6.ident.me/';
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
