@@ -24,20 +24,20 @@ if (USE_IPV4 === false && USE_IPV6 === false) {
     exit(1);
 }
 
-if (!defined('IPV4_ADDRESS_PROVIDER')) {
-    define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
+if (!defined('IPV4_ADDRESS_URL')) {
+    define('IPV4_ADDRESS_URL', 'https://api.ipify.org');
 }
 
-if (!defined('IPV4_ADDRESS_PROVIDER_FALLBACK')) {
-    define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
+if (!defined('IPV4_ADDRESS_URL_FALLBACK')) {
+    define('IPV4_ADDRESS_URL_FALLBACK', 'https://ipv4.seeip.org');
 }
 
-if (!defined('IPV6_ADDRESS_PROVIDER')) {
-    define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
+if (!defined('IPV6_ADDRESS_URL')) {
+    define('IPV6_ADDRESS_URL', 'https://ipv6.seeip.org');
 }
 
-if (!defined('IPV6_ADDRESS_PROVIDER_FALLBACK')) {
-    define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
+if (!defined('IPV6_ADDRESS_URL_FALLBACK')) {
+    define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me/');
 }   
 
 if (USE_IPV4 === true) {

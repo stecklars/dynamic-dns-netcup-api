@@ -28,23 +28,23 @@ define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *
 // define('HOST', 'server');
 
 
-// Set a URL to use to determine the public IPv4 address. It must 
+// Enter a URL to use to determine the public IPv4 address. It must 
 // only return an IPv4 address in plain text, otherwise the script will fail.
-define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
+define('IPV4_ADDRESS_URL', 'https://api.ipify.org');
 
-// Set a URL to use as fallback to determine the public IPv4 
+// Enter a URL to use as fallback to determine the public IPv4 
 // address. It must only return an IPv4 address in plain text, otherwise the 
 // script will fail.
-define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
+define('IPV4_ADDRESS_URL_FALLBACK', 'https://ipv4.seeip.org');
 
-// Set a URL to use to determine the public IPv6 address. It must 
+// Enter a URL to use to determine the public IPv6 address. It must 
 // only return an IPv6 address in plain text, otherwise the script will fail.
-define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
+define('IPV6_ADDRESS_URL', 'https://ipv6.seeip.org');
 
-// Set a URL to use as fallback to determine the public IPv6 
+// Enter a URL to use as fallback to determine the public IPv6 
 // address. It must only return an IPv6 address in plain text, otherwise the 
 // script will fail.
-define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
+define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me/');
 
 
 // If set to true, the script will check for your public IPv4 address and add it as an A-Record / change an existing A-Record for the host.

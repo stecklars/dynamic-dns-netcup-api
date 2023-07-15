@@ -277,9 +277,9 @@ function getCurrentPublicIPv4()
         return $providedIPv4;
     }
 
-    outputStdout('Getting IPv4 address from ' . IPV4_ADDRESS_PROVIDER . '.');
+    outputStdout('Getting IPv4 address from ' . IPV4_ADDRESS_URL . '.');
 
-    $url = IPV4_ADDRESS_PROVIDER;
+    $url = IPV4_ADDRESS_URL;
     $ch = initializeCurlHandlerGetIP($url);
     $publicIP = trim(curl_exec($ch));
 
@@ -292,8 +292,8 @@ function getCurrentPublicIPv4()
         }
 
         if (!isIPV4Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV4_ADDRESS_PROVIDER . " didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback " . IPV4_ADDRESS_PROVIDER_FALLBACK);
-            $url = IPV4_ADDRESS_PROVIDER_FALLBACK;
+            outputWarning(IPV4_ADDRESS_URL . " didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback " . IPV4_ADDRESS_URL_FALLBACK);
+            $url = IPV4_ADDRESS_URL_FALLBACK;
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
             if (!wasCurlSuccessful($ch) || !isIPV4Valid($publicIP)) {
@@ -324,9 +324,9 @@ function getCurrentPublicIPv6()
         return $providedIPv6;
     }
 
-    outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_PROVIDER. '.');
+    outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_URL. '.');
 
-    $url = IPV6_ADDRESS_PROVIDER;
+    $url = IPV6_ADDRESS_URL;
     $ch = initializeCurlHandlerGetIP($url);
     $publicIP = trim(curl_exec($ch));
 
@@ -339,8 +339,8 @@ function getCurrentPublicIPv6()
         }
 
         if (!isIPV6Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV6_ADDRESS_PROVIDER . " didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback " . IPV6_ADDRESS_PROVIDER_FALLBACK);
-            $url = IPV6_ADDRESS_PROVIDER_FALLBACK;
+            outputWarning(IPV6_ADDRESS_URL . " didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback " . IPV6_ADDRESS_URL_FALLBACK);
+            $url = IPV6_ADDRESS_URL_FALLBACK;
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
             if (!wasCurlSuccessful($ch) || !isIPV6Valid($publicIP)) {
