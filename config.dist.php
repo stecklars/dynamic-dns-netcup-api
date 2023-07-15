@@ -28,17 +28,29 @@ define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *
 // define('HOST', 'server');
 
 
+// Set a URL to use to determine the public IPv4 address. It must 
+// only return an IPv4 address in plain text, otherwise the script will fail.
+define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
+
+// Set a URL to use as fallback to determine the public IPv4 
+// address. It must only return an IPv4 address in plain text, otherwise the 
+// script will fail.
+define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
+
+// Set a URL to use to determine the public IPv6 address. It must 
+// only return an IPv6 address in plain text, otherwise the script will fail.
+define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
+
+// Set a URL to use as fallback to determine the public IPv6 
+// address. It must only return an IPv6 address in plain text, otherwise the 
+// script will fail.
+define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
+
+
 // If set to true, the script will check for your public IPv4 address and add it as an A-Record / change an existing A-Record for the host.
 // You may want to deactivate this, for example, when using a carrier grade NAT (CGNAT).
 // Most likely though, you should keep this active, unless you know otherwise.
 define('USE_IPV4', true);
-
-
-define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
-define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
-define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
-define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
-
 
 // If set to true, the script will check for your public IPv6 address too and add it as an AAAA-Record / change an existing AAAA-Record for the host.
 // Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
