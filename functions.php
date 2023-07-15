@@ -277,7 +277,7 @@ function getCurrentPublicIPv4()
         return $providedIPv4;
     }
 
-    outputStdout('Getting IPv4 address from API.');
+    outputStdout('Getting IPv4 address via ' . IPV4_ADDRESS_PROVIDER);
 
     $url = IPV4_ADDRESS_PROVIDER;
     $ch = initializeCurlHandlerGetIP($url);
@@ -292,7 +292,7 @@ function getCurrentPublicIPv4()
         }
 
         if (!isIPV4Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV4_ADDRESS_PROVIDER . " didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback API " . IPV4_ADDRESS_PROVIDER_FALLBACK);
+            outputWarning(IPV4_ADDRESS_PROVIDER . " didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback " . IPV4_ADDRESS_PROVIDER_FALLBACK);
             $url = IPV4_ADDRESS_PROVIDER_FALLBACK;
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
@@ -324,7 +324,7 @@ function getCurrentPublicIPv6()
         return $providedIPv6;
     }
 
-    outputStdout('Getting IPv6 address from API.');
+    outputStdout('Getting IPv6 address  via ' . IPV6_ADDRESS_PROVIDER);
 
     $url = IPV6_ADDRESS_PROVIDER;
     $ch = initializeCurlHandlerGetIP($url);
@@ -339,7 +339,7 @@ function getCurrentPublicIPv6()
         }
 
         if (!isIPV6Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV6_ADDRESS_PROVIDER . " didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback API " . IPV6_ADDRESS_PROVIDER_FALLBACK);
+            outputWarning(IPV6_ADDRESS_PROVIDER . " didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback " . IPV6_ADDRESS_PROVIDER_FALLBACK);
             $url = IPV6_ADDRESS_PROVIDER_FALLBACK;
             $ch = initializeCurlHandlerGetIP($url);
             $publicIP = trim(curl_exec($ch));
