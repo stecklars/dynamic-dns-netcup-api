@@ -24,6 +24,22 @@ if (USE_IPV4 === false && USE_IPV6 === false) {
     exit(1);
 }
 
+if (!defined('IPV4_ADDRESS_PROVIDER')) {
+    define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
+}
+
+if (!defined('IPV4_ADDRESS_PROVIDER_FALLBACK')) {
+    define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
+}
+
+if (!defined('IPV6_ADDRESS_PROVIDER')) {
+    define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
+}
+
+if (!defined('IPV6_ADDRESS_PROVIDER_FALLBACK')) {
+    define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
+}   
+
 if (USE_IPV4 === true) {
     // Get current IPv4 address
     if (!$publicIPv4 = getCurrentPublicIPv4()) {

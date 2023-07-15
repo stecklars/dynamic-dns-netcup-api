@@ -33,6 +33,13 @@ define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *
 // Most likely though, you should keep this active, unless you know otherwise.
 define('USE_IPV4', true);
 
+
+define('IPV4_ADDRESS_PROVIDER', 'https://api.ipify.org');
+define('IPV4_ADDRESS_PROVIDER_FALLBACK', 'https://ipv4.seeip.org');
+define('IPV6_ADDRESS_PROVIDER', 'https://ipv6.seeip.org');
+define('IPV6_ADDRESS_PROVIDER_FALLBACK', 'https://v6.ident.me/');
+
+
 // If set to true, the script will check for your public IPv6 address too and add it as an AAAA-Record / change an existing AAAA-Record for the host.
 // Activate this only if you have IPv6 connectivity, or you *WILL* get errors.
 define('USE_IPV6', false);
