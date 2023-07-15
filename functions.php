@@ -277,7 +277,7 @@ function getCurrentPublicIPv4()
         return $providedIPv4;
     }
 
-    outputStdout('Getting IPv4 address via ' . IPV4_ADDRESS_PROVIDER);
+    outputStdout('Getting IPv4 address from ' . IPV4_ADDRESS_PROVIDER . '.');
 
     $url = IPV4_ADDRESS_PROVIDER;
     $ch = initializeCurlHandlerGetIP($url);
@@ -324,7 +324,7 @@ function getCurrentPublicIPv6()
         return $providedIPv6;
     }
 
-    outputStdout('Getting IPv6 address  via ' . IPV6_ADDRESS_PROVIDER);
+    outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_PROVIDER. '.');
 
     $url = IPV6_ADDRESS_PROVIDER;
     $ch = initializeCurlHandlerGetIP($url);
