@@ -324,7 +324,7 @@ function getCurrentPublicIPv6()
         return $providedIPv6;
     }
 
-    outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_URL. '.');
+    outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_URL . '.');
 
     $url = IPV6_ADDRESS_URL;
     $ch = initializeCurlHandlerGetIP($url);
