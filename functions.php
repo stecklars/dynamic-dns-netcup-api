@@ -1,6 +1,6 @@
 <?php
 
-const VERSION = '4.0';
+const VERSION = '5.0';
 const SUCCESS = 'success';
 const USERAGENT = "dynamic-dns-netcup-api/".VERSION." (by stecklars)";
 
