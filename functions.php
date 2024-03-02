@@ -173,6 +173,9 @@ function sendRequest($request, $apiSessionRetry = false)
 
     $result = json_decode($result, true);
 
+    // Due to a bug in the netcup CCP DNS API, sometimes sessions expire too early (statuscode 4001, error message: "The session id is not in a valid format."
+    // We work around this bug by trying to login again once.
+    // See Github issue #21.
     if ($result['statuscode'] === 4001 && $apiSessionRetry === false) {
         outputWarning("Received API error 4001: The session id is not in a valid format. Most likely the session expired. Logging in again and retrying once.");
         $newApisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD);
