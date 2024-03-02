@@ -2,7 +2,7 @@
 
 const VERSION = '4.0';
 const SUCCESS = 'success';
-
+const USERAGENT = "dynamic-dns-netcup-api/".VERSION." (by stecklars)";
 
 //Check passed options
 $shortopts = "q4:6:c:vh";
@@ -81,6 +81,7 @@ function initializeCurlHandlerPostNetcupAPI($request)
     $ch = curl_init(APIURL);
     $curlOptions = array(
         CURLOPT_POST => 1,
+        CURLOPT_USERAGENT => USERAGENT,
         CURLOPT_TIMEOUT => 30,
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_FAILONERROR => 1,
@@ -96,6 +97,7 @@ function initializeCurlHandlerGetIP($url)
 {
     $ch = curl_init($url);
     $curlOptions = array(
+        CURLOPT_USERAGENT => USERAGENT,
         CURLOPT_TIMEOUT => 30,
         CURLOPT_RETURNTRANSFER => 1,
         CURLOPT_FAILONERROR => 1
@@ -149,8 +151,9 @@ function retryCurlRequest($ch, $tryCount, $tryLimit)
 }
 
 // Sends $request to netcup Domain API and returns the result
-function sendRequest($request)
+function sendRequest($request, $apiSessionRetry = false)
 {
+
     $ch = initializeCurlHandlerPostNetcupAPI($request);
     $result = curl_exec($ch);
 
@@ -168,11 +171,25 @@ function sendRequest($request)
         exit(1);
     }
 
+    $result = json_decode($result, true);
+
+    if ($result['statuscode'] === 4001 && $apiSessionRetry === false) {
+        outputWarning("Received API error 4001: The session id is not in a valid format. Most likely the session expired. Logging in again and retrying once.");
+        $newApisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD);
+
+        global $apisessionid;
+        $apisessionid = $newApisessionid;
+
+        $request = json_decode($request, true);
+        $request['param']['apisessionid'] = $newApisessionid;
+        $request = json_encode($request);
+
+        return sendRequest($request, true);
+    }
+
     // If everything seems to be ok, proceed...
     curl_close($ch);
     unset($ch);
-
-    $result = json_decode($result, true);
 
     return $result;
 }
