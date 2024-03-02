@@ -25,7 +25,7 @@ if (USE_IPV4 === false && USE_IPV6 === false) {
 }
 
 if (!defined('IPV4_ADDRESS_URL')) {
-    define('IPV4_ADDRESS_URL', 'https://api.ipify.org');
+    define('IPV4_ADDRESS_URL', 'https://get-ipv4.steck.cc');
 }
 
 if (!defined('IPV4_ADDRESS_URL_FALLBACK')) {
@@ -33,12 +33,12 @@ if (!defined('IPV4_ADDRESS_URL_FALLBACK')) {
 }
 
 if (!defined('IPV6_ADDRESS_URL')) {
-    define('IPV6_ADDRESS_URL', 'https://ipv6.seeip.org');
+    define('IPV6_ADDRESS_URL', 'https://get-ipv6.steck.cc');
 }
 
 if (!defined('IPV6_ADDRESS_URL_FALLBACK')) {
     define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me/');
-}   
+}
 
 if (USE_IPV4 === true) {
     // Get current IPv4 address

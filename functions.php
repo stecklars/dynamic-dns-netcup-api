@@ -2,7 +2,7 @@
 
 const VERSION = '5.0';
 const SUCCESS = 'success';
-const USERAGENT = "dynamic-dns-netcup-api/".VERSION." (by stecklars)";
+const USERAGENT = "dynamic-dns-netcup-api/" . VERSION ." (by stecklars)";
 
 //Check passed options
 $shortopts = "q4:6:c:vh";
@@ -173,7 +173,7 @@ function sendRequest($request, $apiSessionRetry = false)
 
     $result = json_decode($result, true);
 
-    // Due to a bug in the netcup CCP DNS API, sometimes sessions expire too early (statuscode 4001, error message: "The session id is not in a valid format."
+    // Due to a bug in the netcup CCP DNS API, sometimes sessions expire too early (statuscode 4001, error message: "The session id is not in a valid format.")
     // We work around this bug by trying to login again once.
     // See Github issue #21.
     if ($result['statuscode'] === 4001 && $apiSessionRetry === false) {
