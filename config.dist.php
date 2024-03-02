@@ -28,6 +28,23 @@ define('DOMAINLIST', 'myfirstdomain.com: server, dddns; myseconddomain.com: @, *
 // define('HOST', 'server');
 
 
+// Enter a URL to use to determine the public IPv4 address. 
+// [Optional; will be set to default value 'https://api.ipify.org' if missing.]
+define('IPV4_ADDRESS_URL', 'https://api.ipify.org');
+
+// Enter a URL to use as fallback to determine the public IPv4 address. 
+// [Optional; will be set to default value 'https://ipv4.seeip.org' if missing.]
+define('IPV4_ADDRESS_URL_FALLBACK', 'https://ipv4.seeip.org');
+
+// Enter a URL to use to determine the public IPv6 address.
+// [Optional; will be set to default value 'https://ipv6.seeip.org' if missing.]
+define('IPV6_ADDRESS_URL', 'https://ipv6.seeip.org');
+
+// Enter a URL to use as fallback to determine the public IPv6 address.
+// [Optional; will be set to default value 'https://v6.ident.me' if missing.]
+define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me');
+
+
 // If set to true, the script will check for your public IPv4 address and add it as an A-Record / change an existing A-Record for the host.
 // You may want to deactivate this, for example, when using a carrier grade NAT (CGNAT).
 // Most likely though, you should keep this active, unless you know otherwise.
