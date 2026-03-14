@@ -15,17 +15,16 @@
 ### Implemented
 * All necessary API functions for DNS actions implemented (REST API)
 * Determines correct public IP address, uses fallback API for determining the IP address, in case main API does return invalid / no IP
+* Forces correct IP version (IPv4/IPv6) when connecting to IP address lookup services, preventing issues with dual-stack servers
 * Automatically retries API requests on errors
 * IPv4 and IPv6 Support (can be individually enabled / disabled)
 * Possible to manually provide IPv4 / IPv6 address to set as a CLI option
 * Update everything you want in one go: Every combination of domains, subdomains, domain root, and domain wildcard is possible
 * Creation of DNS record, if it doesn't already exist
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
+* Caching: After a successful run, the current IP is cached locally. On subsequent runs, the DNS API is skipped entirely if the IP hasn't changed. Use `--force` to bypass the cache.
+* Jitter: A random delay (1–30 seconds by default) is applied before API calls to spread load when many users run the script via cron at the same time. Configurable via `JITTER_MAX` in config.
 * Hiding output (quiet option)
-
-### Missing
-* Caching the IP provided to netcup DNS, to avoid running into (currently extremely tolerant) rate limits in the DNS API
-* Probably a lot more :grin: – to be continued...
 
 ## Getting started
 ### Download
@@ -59,6 +58,7 @@ Just add these Options after the command like `./update.php --quiet`
 | -c           | --config           | Manually provide a path to the config file                |
 | -4           | --ipv4             | Manually provide the IPv4 address to set                  |
 | -6           | --ipv6             | Manually provide the IPv6 address to set                  |
+| -f           | --force            | Force update, bypassing the IP cache                      |
 | -h           | --help             | Outputs this help                                         |
 | -v           | --version          | Outputs the current version of the script                 |
 
