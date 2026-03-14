@@ -59,5 +59,10 @@ define('USE_IPV6', false);
 define('CHANGE_TTL', true);
 
 
+// Seconds to wait between retries on network errors or invalid responses.
+// [Optional; will be set to default value 30 if missing.]
+// define('RETRY_SLEEP', 30);
+
+
 // Use netcup DNS REST-API.
 define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');

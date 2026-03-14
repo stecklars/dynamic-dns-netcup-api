@@ -106,68 +106,56 @@ function initializeCurlHandlerGetIP($url)
     return $ch;
 }
 
-// Check if curl request was successful
-function wasCurlSuccessful($ch)
-{
-    if (curl_errno($ch)) {
-        return false;
-    }
-    return true;
-}
-
-// Retrys a curl request for the specified amount of retries after a failure
-function retryCurlRequest($ch, $tryCount, $tryLimit)
+// Executes a curl request with retries. Returns the result string on success, or false after all attempts are exhausted.
+function executeCurlWithRetries($ch, $retryLimit = 3)
 {
     $accessed_url = curl_getinfo($ch)['url'];
 
-    if (curl_errno($ch)) {
-        $curl_errno = curl_errno($ch);
-        $curl_error_msg = curl_error($ch);
+    $result = curl_exec($ch);
+    if (!curl_errno($ch) && $result !== false) {
+        return $result;
+    }
+
+    $retrySleep = defined('RETRY_SLEEP') ? RETRY_SLEEP : 30;
+
+    for ($attempt = 1; $attempt < $retryLimit; $attempt++) {
+        if (curl_errno($ch)) {
+            outputWarning(sprintf(
+                "cURL Error while accessing %s: (%d) %s - Retrying in %d seconds. (Try %d / %d)",
+                $accessed_url, curl_errno($ch), curl_error($ch), $retrySleep, $attempt, $retryLimit
+            ));
+        } else {
+            outputWarning("API at $accessed_url returned invalid answer. Retrying in $retrySleep seconds. (Try $attempt / $retryLimit)");
+        }
+
+        sleep($retrySleep);
+        outputWarning("Retrying now.");
+        $result = curl_exec($ch);
+
+        if (!curl_errno($ch) && $result !== false) {
+            return $result;
+        }
     }
 
     if (curl_errno($ch)) {
-        if ($tryCount === 1) {
-            outputWarning("cURL Error while accessing $accessed_url: ($curl_errno) $curl_error_msg - Retrying in 30 seconds. (Try $tryCount / $tryLimit)");
-        }
-    } else {
-        outputWarning("API at $accessed_url returned invalid answer. Retrying in 30 seconds. (Try $tryCount / $tryLimit)");
+        outputWarning(sprintf(
+            "cURL Error while accessing %s: (%d) %s (Try %d / %d)",
+            $accessed_url, curl_errno($ch), curl_error($ch), $retryLimit, $retryLimit
+        ));
     }
-    sleep(30);
-    outputWarning("Retrying now.");
-    $result = curl_exec($ch);
-    if (curl_errno($ch)) {
-        $curl_errno = curl_errno($ch);
-        $curl_error_msg = curl_error($ch);
-        $tryCount++;
-        if (curl_errno($ch)) {
-            outputWarning("cURL Error while accessing $accessed_url: ($curl_errno) $curl_error_msg - Retrying in 30 seconds. (Try $tryCount / $tryLimit)");
-        }
-        return false;
-    } else {
-        unset($curl_errno);
-        unset($curl_error_msg);
-        return $result;
-    }
+
+    return false;
 }
 
 // Sends $request to netcup Domain API and returns the result
 function sendRequest($request, $apiSessionRetry = false)
 {
-
     $ch = initializeCurlHandlerPostNetcupAPI($request);
-    $result = curl_exec($ch);
-
-    if (!wasCurlSuccessful($ch)) {
-        $retryCount = 1;
-        $retryLimit = 3;
-        while (!$result && $retryCount < $retryLimit) {
-            $result = retryCurlRequest($ch, $retryCount, $retryLimit);
-            $retryCount++;
-        }
-    }
+    $result = executeCurlWithRetries($ch);
 
     if ($result === false) {
-        outputStderr("Max retries reached ($retryCount / $retryLimit). Exiting due to cURL network error.");
+        outputStderr("Max retries reached. Exiting due to cURL network error.");
+        curl_close($ch);
         exit(1);
     }
 
@@ -177,6 +165,7 @@ function sendRequest($request, $apiSessionRetry = false)
     // We work around this bug by trying to login again once.
     // See Github issue #21.
     if ($result['statuscode'] === 4001 && $apiSessionRetry === false) {
+        curl_close($ch);
         outputWarning("Received API error 4001: The session id is not in a valid format. Most likely the session expired. Logging in again and retrying once.");
         $newApisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD);
 
@@ -190,9 +179,7 @@ function sendRequest($request, $apiSessionRetry = false)
         return sendRequest($request, true);
     }
 
-    // If everything seems to be ok, proceed...
     curl_close($ch);
-    unset($ch);
 
     return $result;
 }
@@ -287,10 +274,55 @@ function isIPV6Valid($ipv6)
     }
 }
 
+// Fetches IP address from primary URL with retries, falls back to fallback URL if validation fails.
+// Retries on both cURL errors and invalid IP responses (e.g. service returning an error page).
+// $validator is a callable that returns true if the IP string is valid.
+function fetchIPWithFallback($primaryUrl, $fallbackUrl, $validator)
+{
+    $retryLimit = 3;
+    $retrySleep = defined('RETRY_SLEEP') ? RETRY_SLEEP : 30;
+
+    foreach ([$primaryUrl, $fallbackUrl] as $index => $url) {
+        $ch = initializeCurlHandlerGetIP($url);
+
+        for ($attempt = 0; $attempt < $retryLimit; $attempt++) {
+            if ($attempt > 0) {
+                if (curl_errno($ch)) {
+                    outputWarning(sprintf(
+                        "cURL Error while accessing %s: (%d) %s - Retrying in %d seconds. (Try %d / %d)",
+                        $url, curl_errno($ch), curl_error($ch), $retrySleep, $attempt, $retryLimit
+                    ));
+                } else {
+                    outputWarning("$url didn't return a valid IP address. Retrying in $retrySleep seconds. (Try $attempt / $retryLimit)");
+                }
+                sleep($retrySleep);
+                outputWarning("Retrying now.");
+            }
+
+            $result = curl_exec($ch);
+
+            if (!curl_errno($ch) && $result !== false) {
+                $publicIP = trim($result);
+                if ($validator($publicIP)) {
+                    curl_close($ch);
+                    return $publicIP;
+                }
+            }
+        }
+
+        curl_close($ch);
+
+        if ($index === 0) {
+            outputWarning("$primaryUrl didn't return a valid IP address. Trying fallback $fallbackUrl");
+        }
+    }
+
+    return false;
+}
+
 //Returns current public IPv4 address.
 function getCurrentPublicIPv4()
 {
-    // If user provided an IPv4 address manually as a CLI option
     global $providedIPv4;
     if (isset($providedIPv4)) {
         outputStdout(sprintf('Using manually provided IPv4 address "%s"', $providedIPv4));
@@ -298,46 +330,12 @@ function getCurrentPublicIPv4()
     }
 
     outputStdout('Getting IPv4 address from ' . IPV4_ADDRESS_URL . '.');
-
-    $url = IPV4_ADDRESS_URL;
-    $ch = initializeCurlHandlerGetIP($url);
-    $publicIP = trim(curl_exec($ch));
-
-    if (!wasCurlSuccessful($ch) || !isIPV4Valid($publicIP)) {
-        $retryCount = 1;
-        $retryLimit = 3;
-        while ((!$publicIP || !isIPV4Valid($publicIP)) && $retryCount < $retryLimit) {
-            $publicIP = trim(retryCurlRequest($ch, $retryCount, $retryLimit));
-            $retryCount++;
-        }
-
-        if (!isIPV4Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV4_ADDRESS_URL . " didn't return a valid IPv4 address (Try $retryCount / $retryLimit). Trying fallback " . IPV4_ADDRESS_URL_FALLBACK);
-            $url = IPV4_ADDRESS_URL_FALLBACK;
-            $ch = initializeCurlHandlerGetIP($url);
-            $publicIP = trim(curl_exec($ch));
-            if (!wasCurlSuccessful($ch) || !isIPV4Valid($publicIP)) {
-                $retryCount = 1;
-                $retryLimit = 3;
-                while ((!$publicIP || !isIPV4Valid($publicIP)) && $retryCount < $retryLimit) {
-                    $publicIP = trim(retryCurlRequest($ch, $retryCount, $retryLimit));
-                    $retryCount++;
-                }
-                if (!isIPV4Valid($publicIP) || $publicIP === false) {
-                    return false;
-                }
-            }
-        }
-    }
-    curl_close($ch);
-    unset($ch);
-    return $publicIP;
+    return fetchIPWithFallback(IPV4_ADDRESS_URL, IPV4_ADDRESS_URL_FALLBACK, 'isIPV4Valid');
 }
 
 //Returns current public IPv6 address
 function getCurrentPublicIPv6()
 {
-    // If user provided an IPv6 address manually as a CLI option
     global $providedIPv6;
     if (isset($providedIPv6)) {
         outputStdout(sprintf('Using manually provided IPv6 address "%s"', $providedIPv6));
@@ -345,40 +343,7 @@ function getCurrentPublicIPv6()
     }
 
     outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_URL . '.');
-
-    $url = IPV6_ADDRESS_URL;
-    $ch = initializeCurlHandlerGetIP($url);
-    $publicIP = trim(curl_exec($ch));
-
-    if (!wasCurlSuccessful($ch) || !isIPV6Valid($publicIP)) {
-        $retryCount = 1;
-        $retryLimit = 3;
-        while ((!$publicIP || !isIPV6Valid($publicIP)) && $retryCount < $retryLimit) {
-            $publicIP = trim(retryCurlRequest($ch, $retryCount, $retryLimit));
-            $retryCount++;
-        }
-
-        if (!isIPV6Valid($publicIP) || $publicIP === false) {
-            outputWarning(IPV6_ADDRESS_URL . " didn't return a valid IPv6 address (Try $retryCount / $retryLimit). Trying fallback " . IPV6_ADDRESS_URL_FALLBACK);
-            $url = IPV6_ADDRESS_URL_FALLBACK;
-            $ch = initializeCurlHandlerGetIP($url);
-            $publicIP = trim(curl_exec($ch));
-            if (!wasCurlSuccessful($ch) || !isIPV6Valid($publicIP)) {
-                $retryCount = 1;
-                $retryLimit = 3;
-                while ((!$publicIP || !isIPV6Valid($publicIP)) && $retryCount < $retryLimit) {
-                    $publicIP = trim(retryCurlRequest($ch, $retryCount, $retryLimit));
-                    $retryCount++;
-                }
-                if (!isIPV6Valid($publicIP) || $publicIP === false) {
-                    return false;
-                }
-            }
-        }
-    }
-    curl_close($ch);
-    unset($ch);
-    return $publicIP;
+    return fetchIPWithFallback(IPV6_ADDRESS_URL, IPV6_ADDRESS_URL_FALLBACK, 'isIPV6Valid');
 }
 
 //Login into netcup domain API and returns Apisessionid

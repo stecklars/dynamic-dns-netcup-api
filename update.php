@@ -40,6 +40,10 @@ if (!defined('IPV6_ADDRESS_URL_FALLBACK')) {
     define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me/');
 }
 
+if (!defined('RETRY_SLEEP')) {
+    define('RETRY_SLEEP', 30);
+}
+
 if (USE_IPV4 === true) {
     // Get current IPv4 address
     if (!$publicIPv4 = getCurrentPublicIPv4()) {
