@@ -72,7 +72,7 @@ if (USE_IPV6 === true) {
 // If any of these change (e.g. new subdomain added), the cache is automatically
 // invalidated so the script runs a full update.
 $configFingerprint = md5(json_encode(array(
-    'domainlist' => defined('DOMAINLIST') ? DOMAINLIST : (defined('DOMAIN') ? DOMAIN . ':' . HOST : ''),
+    'domainlist' => defined('DOMAINLIST') ? DOMAINLIST : (defined('DOMAIN') && defined('HOST') ? DOMAIN . ':' . HOST : ''),
     'use_ipv4' => USE_IPV4,
     'use_ipv6' => USE_IPV6,
     'change_ttl' => CHANGE_TTL,
@@ -81,7 +81,8 @@ $configFingerprint = md5(json_encode(array(
 // Check if IP has changed since last run (cache)
 if (!isset($forceUpdate) || $forceUpdate !== true) {
     if (file_exists(CACHE_FILE)) {
-        $cache = json_decode(file_get_contents(CACHE_FILE), true);
+        $cacheContents = file_get_contents(CACHE_FILE);
+        $cache = ($cacheContents !== false) ? json_decode($cacheContents, true) : null;
         if ($cache !== null) {
             $cacheMatch = true;
 
