@@ -98,14 +98,18 @@ function initializeCurlHandlerPostNetcupAPI($request)
 }
 
 // Create cURL handler for get requests (for getting the current public IP)
-function initializeCurlHandlerGetIP($url)
+// $ipResolve can be CURL_IPRESOLVE_V4 or CURL_IPRESOLVE_V6 to force the
+// connection to use a specific IP version, preventing dual-stack servers
+// from returning the wrong address type.
+function initializeCurlHandlerGetIP($url, $ipResolve = CURL_IPRESOLVE_WHATEVER)
 {
     $ch = curl_init($url);
     $curlOptions = array(
         CURLOPT_USERAGENT => USERAGENT,
         CURLOPT_TIMEOUT => 30,
         CURLOPT_RETURNTRANSFER => 1,
-        CURLOPT_FAILONERROR => 1
+        CURLOPT_FAILONERROR => 1,
+        CURLOPT_IPRESOLVE => $ipResolve
     );
     curl_setopt_array($ch, $curlOptions);
     return $ch;
@@ -282,13 +286,13 @@ function isIPV6Valid($ipv6)
 // Fetches IP address from primary URL with retries, falls back to fallback URL if validation fails.
 // Retries on both cURL errors and invalid IP responses (e.g. service returning an error page).
 // $validator is a callable that returns true if the IP string is valid.
-function fetchIPWithFallback($primaryUrl, $fallbackUrl, $validator)
+function fetchIPWithFallback($primaryUrl, $fallbackUrl, $validator, $ipResolve = CURL_IPRESOLVE_WHATEVER)
 {
     $retryLimit = 3;
     $retrySleep = defined('RETRY_SLEEP') ? RETRY_SLEEP : 30;
 
     foreach ([$primaryUrl, $fallbackUrl] as $index => $url) {
-        $ch = initializeCurlHandlerGetIP($url);
+        $ch = initializeCurlHandlerGetIP($url, $ipResolve);
 
         for ($attempt = 0; $attempt < $retryLimit; $attempt++) {
             if ($attempt > 0) {
@@ -335,7 +339,7 @@ function getCurrentPublicIPv4()
     }
 
     outputStdout('Getting IPv4 address from ' . IPV4_ADDRESS_URL . '.');
-    return fetchIPWithFallback(IPV4_ADDRESS_URL, IPV4_ADDRESS_URL_FALLBACK, 'isIPV4Valid');
+    return fetchIPWithFallback(IPV4_ADDRESS_URL, IPV4_ADDRESS_URL_FALLBACK, 'isIPV4Valid', CURL_IPRESOLVE_V4);
 }
 
 //Returns current public IPv6 address
@@ -348,7 +352,7 @@ function getCurrentPublicIPv6()
     }
 
     outputStdout('Getting IPv6 address from ' . IPV6_ADDRESS_URL . '.');
-    return fetchIPWithFallback(IPV6_ADDRESS_URL, IPV6_ADDRESS_URL_FALLBACK, 'isIPV6Valid');
+    return fetchIPWithFallback(IPV6_ADDRESS_URL, IPV6_ADDRESS_URL_FALLBACK, 'isIPV6Valid', CURL_IPRESOLVE_V6);
 }
 
 //Login into netcup domain API and returns Apisessionid
