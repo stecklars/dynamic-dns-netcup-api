@@ -54,7 +54,7 @@ Just add these Options after the command like `./update.php --quiet`
 
 | short option | long option        | function                                                  |
 | ------------ | ------------------ |----------------------------------------------------------:|
-| -q           | --quiet            | The script won't output notices, only errors and warnings |
+| -q           | --quiet            | The script won't output notices or warnings, only errors  |
 | -c           | --config           | Manually provide a path to the config file                |
 | -4           | --ipv4             | Manually provide the IPv4 address to set                  |
 | -6           | --ipv6             | Manually provide the IPv6 address to set                  |

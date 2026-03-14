@@ -37,7 +37,7 @@ if (!defined('IPV6_ADDRESS_URL')) {
 }
 
 if (!defined('IPV6_ADDRESS_URL_FALLBACK')) {
-    define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me/');
+    define('IPV6_ADDRESS_URL_FALLBACK', 'https://v6.ident.me');
 }
 
 if (!defined('RETRY_SLEEP')) {
@@ -95,7 +95,7 @@ if (!isset($forceUpdate) || $forceUpdate !== true) {
 // Apply jitter to spread API load across time
 if (JITTER_MAX > 0) {
     $jitterSeconds = rand(1, JITTER_MAX);
-    outputStdout(sprintf("Waiting %d seconds (jitter) to spread API load...", $jitterSeconds));
+    outputStdout(sprintf("Waiting %d second%s (jitter) to spread API load...", $jitterSeconds, $jitterSeconds === 1 ? '' : 's'));
     sleep($jitterSeconds);
 } else {
     outputWarning("Jitter is disabled. To reduce load on the DNS API, please consider enabling it (JITTER_MAX in config).");

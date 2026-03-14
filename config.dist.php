@@ -11,7 +11,7 @@ define('APIKEY', 'abcdefghijklmnopqrstuvwxyz');
 
 // Define domains and subdomains which should be used for dynamic DNS in the following format:
 // domain.tld: host1, host2, host3; domain2.tld: host1, host4, *, @
-// Start with the domain (without subdomain), add ':' after the domain, then add as many subdomains as you want, seperated by ','.
+// Start with the domain (without subdomain), add ':' after the domain, then add as many subdomains as you want, separated by ','.
 // To add another domain, finish with ';'.
 // Whitespace (spaces and newlines) are ignored. If you have a very complicated configuration, you may want to use multiple lines. Feel free to do so!
 // If one of the subdomains does not exist, the script will create them for you.
