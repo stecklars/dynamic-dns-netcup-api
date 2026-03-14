@@ -62,4 +62,17 @@ Just add these Options after the command like `./update.php --quiet`
 | -h           | --help             | Outputs this help                                         |
 | -v           | --version          | Outputs the current version of the script                 |
 
+## Testing
+A test suite is included (`test.sh`) that validates the script's functionality using a mock HTTP server (`test_mock_server.py`).
+
+### Requirements for running tests
+* Bash
+* PHP-CLI (unit tests work without cURL; integration tests require the cURL extension)
+* Python 3 (for the mock HTTP server)
+
+### Running the tests
+`./test.sh`
+
+The test suite covers CLI options, IP validation, domain parsing, and full end-to-end update flows including caching, jitter, TTL management, error handling, and IPv4/IPv6 support.
+
 If you have ideas on how to improve this script, please don't hesitate to create an issue. Thank you!
