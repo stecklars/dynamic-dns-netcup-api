@@ -170,6 +170,16 @@ function sendRequest($request, $apiSessionRetry = false)
 
     $result = json_decode($result, true);
 
+    // Clean up API error messages: collapse newlines and excessive whitespace
+    // into single spaces (the netcup API sometimes returns messages with
+    // trailing newlines and padding whitespace)
+    if (isset($result['longmessage'])) {
+        $result['longmessage'] = trim(preg_replace('/\s+/', ' ', $result['longmessage']));
+    }
+    if (isset($result['shortmessage'])) {
+        $result['shortmessage'] = trim(preg_replace('/\s+/', ' ', $result['shortmessage']));
+    }
+
     // Due to a bug in the netcup CCP DNS API, sometimes sessions expire too early (statuscode 4001, error message: "The session id is not in a valid format.")
     // We work around this bug by trying to login again once.
     // See Github issue #21.
