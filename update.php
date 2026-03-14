@@ -68,6 +68,16 @@ if (USE_IPV6 === true) {
     }
 }
 
+// Compute a fingerprint of the config values that affect what the script does.
+// If any of these change (e.g. new subdomain added), the cache is automatically
+// invalidated so the script runs a full update.
+$configFingerprint = md5(json_encode(array(
+    'domainlist' => defined('DOMAINLIST') ? DOMAINLIST : (defined('DOMAIN') ? DOMAIN . ':' . HOST : ''),
+    'use_ipv4' => USE_IPV4,
+    'use_ipv6' => USE_IPV6,
+    'change_ttl' => CHANGE_TTL,
+)));
+
 // Check if IP has changed since last run (cache)
 if (!isset($forceUpdate) || $forceUpdate !== true) {
     if (file_exists(CACHE_FILE)) {
@@ -75,6 +85,9 @@ if (!isset($forceUpdate) || $forceUpdate !== true) {
         if ($cache !== null) {
             $cacheMatch = true;
 
+            if (!isset($cache['config_hash']) || $cache['config_hash'] !== $configFingerprint) {
+                $cacheMatch = false;
+            }
             if (USE_IPV4 === true && (!isset($cache['ipv4']) || $cache['ipv4'] !== $publicIPv4)) {
                 $cacheMatch = false;
             }
@@ -278,6 +291,7 @@ if (logout(CUSTOMERNR, APIKEY, $apisessionid)) {
 
 // Write IP cache for next run
 $cacheData = array();
+$cacheData['config_hash'] = $configFingerprint;
 if (USE_IPV4 === true) {
     $cacheData['ipv4'] = $publicIPv4;
 }

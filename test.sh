@@ -47,6 +47,7 @@
 #   42. Full update flow — cache file written after success
 #   43. Full update flow — cache with IPv4+IPv6
 #   44. Full update flow — no cache file (first run)
+#   45. Full update flow — config change invalidates cache
 #
 
 set -uo pipefail
@@ -306,7 +307,7 @@ echo "=== 2. CLI options ==="
 
 # --version / -v should print the version string and exit cleanly.
 assert_exit_code "--version exits 0" 0 php "$SCRIPT_DIR/update.php" --version
-assert_output_contains "--version shows version number" "5.0" php "$SCRIPT_DIR/update.php" --version
+assert_output_contains "--version shows version number" "6.0" php "$SCRIPT_DIR/update.php" --version
 assert_exit_code "-v exits 0" 0 php "$SCRIPT_DIR/update.php" -v
 
 # --help / -h should print usage information and exit cleanly.
@@ -943,12 +944,14 @@ assert_output "jitter delay logged" "Waiting 1 second (jitter)"
 assert_output_missing "no jitter-disabled warning" "Jitter is disabled"
 
 # --- 39. Cache hit → skips API ---
-# Write a cache file with the same IP as the mock returns, then run.
+# Write a cache file with the same IP and config hash as the mock returns.
 # The script should detect no change and exit without logging in.
 echo ""
 echo "  --- 39. Cache hit (skips API) ---"
 CACHE_TMP="$SCRIPT_DIR/cache.test.json"
-echo '{"ipv4":"203.0.113.42"}' > "$CACHE_TMP"
+# Compute the config hash matching the test config (DOMAINLIST='example.com: @', USE_IPV4=true, USE_IPV6=false, CHANGE_TTL=false)
+CACHE_HASH=$(php -r "echo md5(json_encode(array('domainlist'=>'example.com: @','use_ipv4'=>true,'use_ipv6'=>false,'change_ttl'=>false)));")
+echo "{\"config_hash\":\"$CACHE_HASH\",\"ipv4\":\"203.0.113.42\"}" > "$CACHE_TMP"
 cat > "$TEST_CONFIG" <<PHPEOF
 <?php
 define('CUSTOMERNR', '12345');
@@ -980,7 +983,7 @@ rm -f "$CACHE_TMP"
 echo ""
 echo "  --- 40. Cache miss (proceeds with update) ---"
 CACHE_TMP="$SCRIPT_DIR/cache.test.json"
-echo '{"ipv4":"1.2.3.4"}' > "$CACHE_TMP"
+echo "{\"config_hash\":\"$CACHE_HASH\",\"ipv4\":\"1.2.3.4\"}" > "$CACHE_TMP"
 cat > "$TEST_CONFIG" <<PHPEOF
 <?php
 define('CUSTOMERNR', '12345');
@@ -1010,7 +1013,7 @@ rm -f "$CACHE_TMP"
 echo ""
 echo "  --- 41. Force bypasses cache ---"
 CACHE_TMP="$SCRIPT_DIR/cache.test.json"
-echo '{"ipv4":"203.0.113.42"}' > "$CACHE_TMP"
+echo "{\"config_hash\":\"$CACHE_HASH\",\"ipv4\":\"203.0.113.42\"}" > "$CACHE_TMP"
 cat > "$TEST_CONFIG" <<PHPEOF
 <?php
 define('CUSTOMERNR', '12345');
@@ -1146,6 +1149,41 @@ run_update
 assert_run_exit "exits 0" 0
 assert_output "logs in without cache" "Logged in successfully"
 assert_output_missing "no cache hit message" "cached"
+rm -f "$CACHE_TMP"
+
+# --- 45. Config change invalidates cache ---
+# Cache has the correct IP but was written with a different DOMAINLIST.
+# The config fingerprint won't match → cache miss → full update.
+echo ""
+echo "  --- 45. Config change invalidates cache ---"
+CACHE_TMP="$SCRIPT_DIR/cache.test.json"
+# Write a cache with the hash from DOMAINLIST='example.com: @' (standard test config)
+echo "{\"config_hash\":\"$CACHE_HASH\",\"ipv4\":\"203.0.113.42\"}" > "$CACHE_TMP"
+# But run with a DIFFERENT DOMAINLIST — the hash won't match
+cat > "$TEST_CONFIG" <<PHPEOF
+<?php
+define('CUSTOMERNR', '12345');
+define('APIKEY', 'testkey');
+define('APIPASSWORD', 'testpass');
+define('APIURL', 'http://localhost:$MOCK_PORT/api');
+define('USE_IPV4', true);
+define('USE_IPV6', false);
+define('CHANGE_TTL', false);
+define('DOMAINLIST', 'example.com: @, www');
+define('IPV4_ADDRESS_URL', 'http://localhost:$MOCK_PORT/ipv4');
+define('IPV4_ADDRESS_URL_FALLBACK', 'http://localhost:$MOCK_PORT/ipv4');
+define('IPV6_ADDRESS_URL', 'http://localhost:$MOCK_PORT/ipv6');
+define('IPV6_ADDRESS_URL_FALLBACK', 'http://localhost:$MOCK_PORT/ipv6');
+define('RETRY_SLEEP', 0);
+define('JITTER_MAX', 0);
+define('CACHE_FILE', '$CACHE_TMP');
+PHPEOF
+run_update
+assert_run_exit "exits 0" 0
+assert_output "logs in despite matching IP" "Logged in successfully"
+assert_output_missing "no cache hit" "cached"
+# Verify the new subdomain was processed
+assert_output "processes new subdomain" 'Updating DNS records for subdomain "www"'
 rm -f "$CACHE_TMP"
 
 fi  # end of cURL/python3 availability check
