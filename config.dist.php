@@ -64,5 +64,19 @@ define('CHANGE_TTL', true);
 // define('RETRY_SLEEP', 30);
 
 
+// Maximum random delay in seconds (1 to JITTER_MAX) applied before API calls.
+// This spreads load on the DNS API when many users run the script via cron at the same time.
+// Set to 0 to disable (not recommended).
+// [Optional; will be set to default value 30 if missing.]
+define('JITTER_MAX', 30);
+
+
+// Path to the IP cache file. The script caches the current IP address after
+// a successful update. On subsequent runs, if the IP hasn't changed, the
+// script skips the DNS API entirely. Use --force to bypass the cache.
+// [Optional; will be set to default value '__DIR__/cache.json' if missing.]
+// define('CACHE_FILE', __DIR__ . '/cache.json');
+
+
 // Use netcup DNS REST-API.
 define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');

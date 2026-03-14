@@ -5,14 +5,15 @@ const SUCCESS = 'success';
 const USERAGENT = "dynamic-dns-netcup-api/" . VERSION ." (by stecklars)";
 
 //Check passed options
-$shortopts = "q4:6:c:vh";
+$shortopts = "q4:6:c:vhf";
 $longopts = array(
     "quiet",
     "ipv4:",
     "ipv6:",
     "config:",
     "version",
-    "help"
+    "help",
+    "force"
 );
 $options = getopt($shortopts, $longopts);
 if (isset($options['version']) || isset($options['v'])) {
@@ -30,12 +31,16 @@ if (isset($options['help']) || isset($options['h'])) {
 | -c           | --config           | Manually provide a path to the config file                |
 | -4           | --ipv4             | Manually provide the IPv4 address to set                  |
 | -6           | --ipv6             | Manually provide the IPv6 address to set                  |
+| -f           | --force            | Force update, bypassing the IP cache                      |
 | -h           | --help             | Outputs this help                                         |
 | -v           | --version          | Outputs the current version of the script                 |\n\n";
     exit();
 }
 if (isset($options['quiet']) || isset($options['q'])) {
     $quiet = true;
+}
+if (isset($options['force']) || isset($options['f'])) {
+    $forceUpdate = true;
 }
 if (isset($options['ipv4']) || isset($options[4])) {
     $providedIPv4 = isset($options[4]) ? $options[4] : $options["ipv4"];

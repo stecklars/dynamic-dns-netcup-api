@@ -1,2 +1,6 @@
 config.php
+cache.json
+config.unit.php
+config.unit.php.tmp.php
+config.test.php
 .php-cs-fixer.cache

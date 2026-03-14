@@ -44,6 +44,14 @@ if (!defined('RETRY_SLEEP')) {
     define('RETRY_SLEEP', 30);
 }
 
+if (!defined('JITTER_MAX')) {
+    define('JITTER_MAX', 30);
+}
+
+if (!defined('CACHE_FILE')) {
+    define('CACHE_FILE', __DIR__ . '/cache.json');
+}
+
 if (USE_IPV4 === true) {
     // Get current IPv4 address
     if (!$publicIPv4 = getCurrentPublicIPv4()) {
@@ -58,6 +66,39 @@ if (USE_IPV6 === true) {
         outputStderr("Main API and fallback API didn't return a valid IPv6 address (Try 3 / 3). Do you have IPv6 connectivity? If not, please disable USE_IPV6 in config.php. Exiting.");
         exit(1);
     }
+}
+
+// Check if IP has changed since last run (cache)
+if (!isset($forceUpdate) || $forceUpdate !== true) {
+    if (file_exists(CACHE_FILE)) {
+        $cache = json_decode(file_get_contents(CACHE_FILE), true);
+        if ($cache !== null) {
+            $cacheMatch = true;
+
+            if (USE_IPV4 === true && (!isset($cache['ipv4']) || $cache['ipv4'] !== $publicIPv4)) {
+                $cacheMatch = false;
+            }
+            if (USE_IPV6 === true && (!isset($cache['ipv6']) || $cache['ipv6'] !== $publicIPv6)) {
+                $cacheMatch = false;
+            }
+
+            if ($cacheMatch) {
+                outputStdout("IP address hasn't changed since last run (cached). Skipping update. Use --force to update anyway.");
+                exit(0);
+            }
+        }
+    }
+} else {
+    outputStdout("Force mode enabled. Bypassing IP cache.");
+}
+
+// Apply jitter to spread API load across time
+if (JITTER_MAX > 0) {
+    $jitterSeconds = rand(1, JITTER_MAX);
+    outputStdout(sprintf("Waiting %d seconds (jitter) to spread API load...", $jitterSeconds));
+    sleep($jitterSeconds);
+} else {
+    outputWarning("Jitter is disabled. To reduce load on the DNS API, please consider enabling it (JITTER_MAX in config).");
 }
 
 // Login
@@ -233,4 +274,16 @@ if (logout(CUSTOMERNR, APIKEY, $apisessionid)) {
     outputStdout("Logged out successfully!");
 } else {
     exit(1);
+}
+
+// Write IP cache for next run
+$cacheData = array();
+if (USE_IPV4 === true) {
+    $cacheData['ipv4'] = $publicIPv4;
+}
+if (USE_IPV6 === true) {
+    $cacheData['ipv6'] = $publicIPv6;
+}
+if (file_put_contents(CACHE_FILE, json_encode($cacheData)) === false) {
+    outputWarning(sprintf('Could not write cache file "%s". Caching will not work until this is resolved.', CACHE_FILE));
 }
