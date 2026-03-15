@@ -53,9 +53,23 @@ Then, allow `update.php` to be executed by your user:
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
 
 ### Option 2: Docker
-For systems without PHP (e.g., NAS devices), a Docker image is available.
+A Docker image is available for systems without PHP, such as NAS devices. The image includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
 
-#### Using Docker Hub
+Create your `config.php` first (see Configuration above), then follow the instructions for your platform below.
+
+#### NAS (Synology, QNAP, Unraid)
+1. Search for `stecklars/dynamic-dns-netcup-api` in your NAS Docker GUI and download the image
+2. Create a container with the following settings:
+   * **Volume mounts:**
+     * Map your `config.php` file to `/app/config.php` (read-only)
+     * Map a folder for persistent data (IP cache) to `/app/data`
+   * **Environment variables (optional):**
+     * `CRON_SCHEDULE` — How often to check for IP changes (default: `*/5 * * * *`, i.e., every 5 minutes)
+     * `TZ` — Timezone for the schedule (default: `UTC`, e.g., `Europe/Berlin`)
+   * **Restart policy:** Set to "always" or "unless stopped" so it survives reboots
+3. Start the container — it runs the script immediately and then on the configured schedule
+
+#### Command line
 ```bash
 docker run -d \
   -v ./config.php:/app/config.php:ro \
@@ -65,36 +79,21 @@ docker run -d \
   stecklars/dynamic-dns-netcup-api
 ```
 
-#### Using docker compose
+Or using docker compose:
 1. Clone the repository
-2. Create your `config.php` (see Configuration above)
+2. Create your `config.php`
 3. Run `docker compose up -d`
 
-The container runs the script on the configured schedule (default: every 5 minutes). The IP cache is stored in a persistent volume.
-
-#### Docker environment variables
-
-| Variable        | Default         | Description                              |
-| --------------- | --------------- | ---------------------------------------- |
-| CRON_SCHEDULE   | `*/5 * * * *`   | Cron schedule for running the script     |
-| TZ              | UTC             | Timezone for cron schedule               |
-
 #### One-shot mode
-To run the script once (e.g., to test your config or force an update):
+To run the script once instead of starting the scheduler (e.g., to test your config or force an update):
 
 ```bash
 docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --force
 ```
 
-#### SELinux note
-On systems with SELinux (Fedora, RHEL, openSUSE), add the `:z` flag to volume mounts so the container can read the config file:
-
-```bash
-docker run --rm -v ./config.php:/app/config.php:ro,z stecklars/dynamic-dns-netcup-api --force
-```
-
-#### IPv6 note
-Docker's default bridge network does not support IPv6. If you use `USE_IPV6=true`, run the container with `--network host` or configure Docker's IPv6 support.
+#### Docker notes
+* **"Permission denied" errors on Fedora, RHEL, or openSUSE**: These systems use SELinux, which blocks container access to mounted files even if file permissions look correct. Fix this by adding the `:z` flag to all volume mounts, e.g., `-v ./config.php:/app/config.php:ro,z -v dyndns-data:/app/data:z`. This does not affect NAS systems.
+* **IPv6**: Docker's default bridge network does not support IPv6. If you use `USE_IPV6=true`, run the container with `--network host` or configure Docker's IPv6 support.
 
 ### CLI options
 Just add these Options after the command like `./update.php --quiet`
