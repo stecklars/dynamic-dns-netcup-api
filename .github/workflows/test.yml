@@ -20,3 +20,11 @@ jobs:
 
       - name: Run test suite
         run: ./test.sh
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image (without pushing)
+        run: docker build -t dyndns-netcup-test .
