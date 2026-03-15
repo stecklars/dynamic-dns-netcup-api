@@ -94,11 +94,13 @@ Or using docker compose:
 3. Run `docker compose up -d`
 
 #### One-shot mode
-To run the script once instead of starting the scheduler (e.g., to test your config or force an update):
+To run the script once instead of starting the scheduler (e.g., to test your config):
 
 ```bash
-docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --force
+docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api
 ```
+
+Add `--force` to bypass the IP cache if needed. One-shot mode is meant for testing and manual runs — for regular use, use the cron mode above (the default) which handles scheduling, caching, and jitter automatically.
 
 #### Docker notes
 * **"Permission denied" errors on Fedora, RHEL, or openSUSE**: These systems use SELinux, which blocks container access to mounted files even if file permissions look correct. Fix this by adding the `:z` flag to all volume mounts, e.g., `-v ./config.php:/app/config.php:ro,z -v dyndns-data:/app/data:z`. This does not affect NAS systems.
