@@ -78,6 +78,8 @@ Create your `config.php` first — use [`config.dist.php`](https://github.com/st
 4. Start the container — it runs the script immediately and then on the configured schedule
 
 #### Command line
+The image is pulled from Docker Hub automatically — no need to clone the repository:
+
 ```bash
 docker run -d \
   -v ./config.php:/app/config.php:ro \
@@ -88,10 +90,11 @@ docker run -d \
   stecklars/dynamic-dns-netcup-api
 ```
 
-Or using docker compose:
-1. Clone the repository
-2. Create your `config.php`
-3. Run `docker compose up -d`
+#### Docker compose
+If you have cloned the repository, you can use docker compose instead:
+
+1. Create your `config.php`
+2. Run `docker compose up -d`
 
 #### One-shot mode
 To run the script once instead of starting the scheduler (e.g., to test your config):
