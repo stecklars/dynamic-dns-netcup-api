@@ -100,7 +100,13 @@ To run the script once instead of starting the scheduler (e.g., to test your con
 docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --run-once
 ```
 
-You can also pass other flags like `--force` (bypass IP cache) or `--quiet`. One-shot mode is meant for testing and manual runs — for regular use, use the cron mode above (the default) which handles scheduling, caching, and jitter automatically.
+One-shot mode is meant for testing and manual runs — for regular use, use the cron mode (the default) which handles scheduling, caching, and jitter automatically.
+
+Script flags like `--force` and `--quiet` can be used in both modes, e.g.:
+
+```bash
+docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --run-once --force
+```
 
 #### Docker notes
 * **"Permission denied" errors on Fedora, RHEL, or openSUSE**: These systems use SELinux, which blocks container access to mounted files even if file permissions look correct. Fix this by adding the `:z` flag to all volume mounts, e.g., `-v ./config.php:/app/config.php:ro,z -v dyndns-data:/app/data:z`. This does not affect NAS systems.

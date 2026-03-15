@@ -10,13 +10,22 @@ if (!defined('CACHE_FILE')) {
 }
 CONFIGEOF
 
-# If arguments are passed, run in one-shot mode instead of starting cron.
-# --run-once triggers a single run without extra flags.
-# Any other arguments (e.g., --force, --quiet) are passed through to update.php.
-if [ "$1" = "--run-once" ]; then
-    exec php /app/update.php -c /app/config.docker.php
-elif [ $# -gt 0 ] && [ "$1" != "cron" ]; then
-    exec php /app/update.php -c /app/config.docker.php "$@"
+# Check for --run-once flag and remove it from the argument list.
+# Remaining arguments (e.g., --quiet, --force) are passed to update.php
+# in both one-shot and cron mode.
+RUN_ONCE=false
+ARGS=""
+for arg in "$@"; do
+    if [ "$arg" = "--run-once" ]; then
+        RUN_ONCE=true
+    else
+        ARGS="$ARGS $arg"
+    fi
+done
+
+# One-shot mode: run once and exit.
+if [ "$RUN_ONCE" = "true" ]; then
+    exec php /app/update.php -c /app/config.docker.php $ARGS
 fi
 
 # Cron mode (default)
@@ -26,11 +35,11 @@ echo "Starting dynamic DNS client for netcup (cron: $CRON_SCHEDULE)"
 echo "Press Ctrl+C or stop the container to exit."
 
 # Run once immediately so the user gets feedback on startup.
-php /app/update.php -c /app/config.docker.php
+php /app/update.php -c /app/config.docker.php $ARGS
 
 # Set up crontab. Output is redirected to Docker's stdout/stderr
 # so that 'docker logs' shows the script's output.
-echo "$CRON_SCHEDULE php /app/update.php -c /app/config.docker.php >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
+echo "$CRON_SCHEDULE php /app/update.php -c /app/config.docker.php $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
 
 # Start crond in the foreground (PID 1).
 exec crond -f -l 2
