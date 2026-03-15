@@ -69,7 +69,7 @@ Create your `config.php` first (see Configuration above), then follow the instru
 | Container path   | Description                          |
 | ---------------- | ------------------------------------ |
 | `/app/config.php` | Your configuration file (read-only) |
-| `/app/data`       | Persistent IP cache                 |
+| `/app/data`       | Persistent IP cache (empty dir, created automatically) |
 
 #### NAS (Synology, QNAP, Unraid)
 1. Search for `stecklars/dynamic-dns-netcup-api` in your NAS Docker GUI and download the image
