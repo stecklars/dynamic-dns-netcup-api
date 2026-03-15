@@ -93,8 +93,7 @@ docker run -d \
 #### Docker compose
 If you have cloned the repository, you can use docker compose instead:
 
-1. Create your `config.php`
-2. Run `docker compose up -d`
+`docker compose up -d`
 
 #### One-shot mode
 To run the script once instead of starting the scheduler (e.g., to test your config):
