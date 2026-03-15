@@ -10,8 +10,12 @@ if (!defined('CACHE_FILE')) {
 }
 CONFIGEOF
 
-# If arguments are passed (e.g., --force, --quiet), run in one-shot mode.
-if [ $# -gt 0 ] && [ "$1" != "cron" ]; then
+# If arguments are passed, run in one-shot mode instead of starting cron.
+# --run-once triggers a single run without extra flags.
+# Any other arguments (e.g., --force, --quiet) are passed through to update.php.
+if [ "$1" = "--run-once" ]; then
+    exec php /app/update.php -c /app/config.docker.php
+elif [ $# -gt 0 ] && [ "$1" != "cron" ]; then
     exec php /app/update.php -c /app/config.docker.php "$@"
 fi
 
