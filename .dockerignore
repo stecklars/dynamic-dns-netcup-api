@@ -1,0 +1,17 @@
+.git
+.gitignore
+.github
+config.php
+cache.json
+CLAUDE.md
+CONTRIBUTING.md
+RELEASE_NOTES_v6.0.md
+README.md
+LICENSE
+test.sh
+test_mock_server.py
+config.dist.php
+config.unit.php
+config.test.php
+cache.test.json
+*.md

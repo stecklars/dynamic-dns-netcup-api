@@ -40,6 +40,7 @@ Run tests with `./test.sh`. Requires Bash, PHP-CLI, and Python 3.
 - **Adding a new config option:** Add `define()` in `config.dist.php` (documented), add `!defined()` default guard in `update.php`, add to `write_mock_config` in `test.sh` if it affects test behavior.
 - **Adding a new API mock variant:** Add handler method in `test_mock_server.py`, add to the dispatch dict, write tests in `test.sh`.
 - **Bumping version:** Change `const VERSION` in `functions.php` line 3. Update the version check in `test.sh` (search for the old version string).
+- **Docker image:** The `Dockerfile` copies only `update.php` and `functions.php` (via `.dockerignore`). The `docker-entrypoint.sh` generates a wrapper config that includes the user's mounted `config.php` and sets `CACHE_FILE` to the persistent volume. A GitHub Actions workflow (`.github/workflows/docker-publish.yml`) automatically builds and pushes the Docker image to Docker Hub when a release is published.
 
 **Important:** After any user-facing change (new feature, new CLI option, changed behavior), update `README.md` to match. Keep the CLI options table in `README.md` identical to the help text in `functions.php`. Update the feature list if applicable.
 

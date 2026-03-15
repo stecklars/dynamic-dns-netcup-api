@@ -27,7 +27,11 @@
 * Hiding output (quiet option)
 
 ## Getting started
-### Download
+### Option 1: Direct (PHP)
+#### Requirements
+* PHP-CLI with CURL extension
+
+#### Download
 Download the [latest version](https://github.com/stecklars/dynamic-dns-netcup-api/releases/latest) from the releases or clone the repository:
 
 `$ git clone https://github.com/stecklars/dynamic-dns-netcup-api.git`
@@ -38,16 +42,52 @@ Then, allow `update.php` to be executed by your user:
 
 `chmod u+x update.php`
 
-### Configuration
-Configuration is very simple: 
+#### Configuration
 * Copy `config.dist.php` to `config.php`
   * `cp config.dist.php config.php`
 * Fill out `config.php` with the required values. The options are explained in there.
 
-### How to use
+#### How to use
 `./update.php`
 
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
+
+### Option 2: Docker
+For systems without PHP (e.g., NAS devices), a Docker image is available.
+
+#### Using Docker Hub
+```bash
+docker run -d \
+  -v ./config.php:/app/config.php:ro \
+  -v dyndns-data:/app/data \
+  -e CRON_SCHEDULE="*/5 * * * *" \
+  --restart unless-stopped \
+  stecklars/dynamic-dns-netcup-api
+```
+
+#### Using docker compose
+1. Clone the repository
+2. Create your `config.php` (see Configuration above)
+3. Run `docker compose up -d`
+
+The container runs the script on the configured schedule (default: every 5 minutes). The IP cache is stored in a persistent volume.
+
+#### Docker environment variables
+
+| Variable        | Default         | Description                              |
+| --------------- | --------------- | ---------------------------------------- |
+| CRON_SCHEDULE   | `*/5 * * * *`   | Cron schedule for running the script     |
+| TZ              | UTC             | Timezone for cron schedule               |
+
+#### One-shot mode
+To run the script once (e.g., to test your config or force an update):
+
+```bash
+docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --force
+```
+
+#### IPv6 note
+Docker's default bridge network does not support IPv6. If you use `USE_IPV6=true`, run the container with `--network host` or configure Docker's IPv6 support.
 
 ### CLI options
 Just add these Options after the command like `./update.php --quiet`

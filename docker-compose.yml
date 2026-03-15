@@ -1,0 +1,13 @@
+services:
+  dyndns:
+    build: .
+    volumes:
+      - ./config.php:/app/config.php:ro
+      - dyndns-data:/app/data
+    environment:
+      - CRON_SCHEDULE=*/5 * * * *
+      # - TZ=Europe/Berlin
+    restart: unless-stopped
+
+volumes:
+  dyndns-data:
