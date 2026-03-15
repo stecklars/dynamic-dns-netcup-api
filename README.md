@@ -81,7 +81,7 @@ Create your `config.php` first — use [`config.dist.php`](https://github.com/st
 The image is pulled from Docker Hub automatically — no need to clone the repository:
 
 ```bash
-docker run -d \
+docker run -d --name dyndns \
   -v ./config.php:/app/config.php:ro \
   -v dyndns-data:/app/data \
   -e CRON_SCHEDULE="*/5 * * * *" \
@@ -109,6 +109,15 @@ Script flags like `--force` and `--quiet` can be used in both modes, e.g.:
 ```bash
 docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --run-once --force
 ```
+
+#### Viewing logs
+```bash
+docker logs dyndns                  # show all logs
+docker logs -f dyndns               # follow logs in real-time
+docker logs --tail 20 dyndns        # show last 20 lines
+```
+
+In docker compose, use `docker compose logs -f`.
 
 #### Docker notes
 * **"Permission denied" errors on Fedora, RHEL, or openSUSE**: These systems use SELinux, which blocks container access to mounted files even if file permissions look correct. Fix this by adding the `:z` flag to all volume mounts, e.g., `-v ./config.php:/app/config.php:ro,z -v dyndns-data:/app/data:z`. This does not affect NAS systems.
