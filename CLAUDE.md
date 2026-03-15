@@ -21,7 +21,7 @@ Three source files, no framework, no dependencies beyond PHP-CLI with cURL:
 
 ## Testing
 
-Run tests with `./test.sh`. Requires Bash, PHP-CLI, and Python 3.
+Run tests with `./tests/test.sh`. Requires Bash, PHP-CLI, and Python 3.
 
 - Unit tests (IP validation, domain parsing) work without cURL by loading `functions.php` with a dummy config via `php -- -c <config> -q`.
 - Integration tests use `test_mock_server.py` — a Python HTTP server simulating both IP lookup services and the netcup API. It listens on dual-stack (IPv4+IPv6) and has 13 API endpoint variants for different scenarios.

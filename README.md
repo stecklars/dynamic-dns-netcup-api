@@ -126,7 +126,7 @@ Just add these Options after the command like `./update.php --quiet`
 | -v           | --version          | Outputs the current version of the script                 |
 
 ## Testing
-A test suite is included (`test.sh`) that validates the script's functionality using a mock HTTP server (`test_mock_server.py`).
+A test suite is included in the `tests/` directory that validates the script's functionality using a mock HTTP server.
 
 ### Requirements for running tests
 * Bash
@@ -134,7 +134,7 @@ A test suite is included (`test.sh`) that validates the script's functionality u
 * Python 3 (for the mock HTTP server)
 
 ### Running the tests
-`./test.sh`
+`./tests/test.sh`
 
 The test suite covers CLI options, IP validation, domain parsing, and full end-to-end update flows including caching, jitter, TTL management, error handling, and IPv4/IPv6 support.
 

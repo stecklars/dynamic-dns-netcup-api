@@ -53,6 +53,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PASS=0
 FAIL=0
 SKIP=0
@@ -136,7 +137,7 @@ assert_output_contains() {
 run_php() {
     php -- -c "$UNIT_CONFIG" -q <<INNEREOF 2>/dev/null
 <?php
-require '$SCRIPT_DIR/functions.php';
+require '$PROJECT_DIR/functions.php';
 $1
 INNEREOF
 }
@@ -155,7 +156,7 @@ $config_code
 CFGEOF
     php -- -c "$tmp_config" -q <<INNEREOF 2>/dev/null
 <?php
-require '$SCRIPT_DIR/functions.php';
+require '$PROJECT_DIR/functions.php';
 $test_code
 INNEREOF
     rm -f "$tmp_config"
@@ -250,7 +251,7 @@ PHPEOF
 # Sets $output and $exit_code for subsequent assertions.
 run_update() {
     local extra_args="${*:-}"
-    output=$(php "$SCRIPT_DIR/update.php" -c "$TEST_CONFIG" $extra_args 2>&1) && exit_code=$? || exit_code=$?
+    output=$(php "$PROJECT_DIR/update.php" -c "$TEST_CONFIG" $extra_args 2>&1) && exit_code=$? || exit_code=$?
 }
 
 # Assert that $output (from run_update) contains a string.
@@ -295,8 +296,8 @@ echo ""
 echo "=== 1. Syntax checks ==="
 
 # Verify both PHP files parse without syntax errors.
-assert_exit_code "functions.php has valid syntax" 0 php -l "$SCRIPT_DIR/functions.php"
-assert_exit_code "update.php has valid syntax" 0 php -l "$SCRIPT_DIR/update.php"
+assert_exit_code "functions.php has valid syntax" 0 php -l "$PROJECT_DIR/functions.php"
+assert_exit_code "update.php has valid syntax" 0 php -l "$PROJECT_DIR/update.php"
 
 # ===========================================================================
 # 2. CLI OPTIONS
@@ -306,15 +307,15 @@ echo ""
 echo "=== 2. CLI options ==="
 
 # --version / -v should print the version string and exit cleanly.
-assert_exit_code "--version exits 0" 0 php "$SCRIPT_DIR/update.php" --version
-assert_output_contains "--version shows version number" "6.0" php "$SCRIPT_DIR/update.php" --version
-assert_exit_code "-v exits 0" 0 php "$SCRIPT_DIR/update.php" -v
+assert_exit_code "--version exits 0" 0 php "$PROJECT_DIR/update.php" --version
+assert_output_contains "--version shows version number" "6.0" php "$PROJECT_DIR/update.php" --version
+assert_exit_code "-v exits 0" 0 php "$PROJECT_DIR/update.php" -v
 
 # --help / -h should print usage information and exit cleanly.
-assert_exit_code "--help exits 0" 0 php "$SCRIPT_DIR/update.php" --help
-assert_output_contains "--help shows options table" "--quiet" php "$SCRIPT_DIR/update.php" --help
-assert_output_contains "--help shows force option" "--force" php "$SCRIPT_DIR/update.php" --help
-assert_exit_code "-h exits 0" 0 php "$SCRIPT_DIR/update.php" -h
+assert_exit_code "--help exits 0" 0 php "$PROJECT_DIR/update.php" --help
+assert_output_contains "--help shows options table" "--quiet" php "$PROJECT_DIR/update.php" --help
+assert_output_contains "--help shows force option" "--force" php "$PROJECT_DIR/update.php" --help
+assert_exit_code "-h exits 0" 0 php "$PROJECT_DIR/update.php" -h
 
 # ===========================================================================
 # 3. INVALID IP ARGUMENTS
@@ -325,11 +326,11 @@ echo "=== 3. Invalid IP arguments ==="
 
 # Providing an invalid IPv4 or IPv6 address via CLI should fail immediately
 # with exit code 1, before any API calls are made.
-assert_exit_code "-4 with garbage text exits 1" 1 php "$SCRIPT_DIR/update.php" -4 "not-an-ip"
-assert_exit_code "-4 with out-of-range octets exits 1" 1 php "$SCRIPT_DIR/update.php" -4 "999.999.999.999"
-assert_exit_code "-6 with garbage text exits 1" 1 php "$SCRIPT_DIR/update.php" -6 "not-an-ipv6"
-assert_output_contains "-4 invalid shows error message" "is invalid. Exiting" php "$SCRIPT_DIR/update.php" -4 "bad"
-assert_output_contains "-6 invalid shows error message" "is invalid. Exiting" php "$SCRIPT_DIR/update.php" -6 "bad"
+assert_exit_code "-4 with garbage text exits 1" 1 php "$PROJECT_DIR/update.php" -4 "not-an-ip"
+assert_exit_code "-4 with out-of-range octets exits 1" 1 php "$PROJECT_DIR/update.php" -4 "999.999.999.999"
+assert_exit_code "-6 with garbage text exits 1" 1 php "$PROJECT_DIR/update.php" -6 "not-an-ipv6"
+assert_output_contains "-4 invalid shows error message" "is invalid. Exiting" php "$PROJECT_DIR/update.php" -4 "bad"
+assert_output_contains "-6 invalid shows error message" "is invalid. Exiting" php "$PROJECT_DIR/update.php" -6 "bad"
 
 # ===========================================================================
 # 4. CONFIG LOADING
@@ -339,9 +340,9 @@ echo ""
 echo "=== 4. Config loading ==="
 
 # A non-existent config path should fail with exit 1 and a helpful error.
-assert_exit_code "missing config file exits 1" 1 php "$SCRIPT_DIR/update.php" -c "/nonexistent/config.php"
+assert_exit_code "missing config file exits 1" 1 php "$PROJECT_DIR/update.php" -c "/nonexistent/config.php"
 assert_output_contains "missing config shows error" "Could not open config.php" \
-    php "$SCRIPT_DIR/update.php" -c "/nonexistent/config.php"
+    php "$PROJECT_DIR/update.php" -c "/nonexistent/config.php"
 
 # ===========================================================================
 # 5. IPv4 VALIDATION (isIPV4Valid)
@@ -489,7 +490,7 @@ define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http:
 LEGEOF
 php -- -c "$local_config" -q <<LEGPHP > /dev/null 2>&1
 <?php
-require '$SCRIPT_DIR/functions.php';
+require '$PROJECT_DIR/functions.php';
 getDomains();
 echo "SHOULD_NOT_REACH";
 LEGPHP
@@ -512,7 +513,7 @@ define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http:
 LEGEOF
 php -- -c "$local_config" -q <<LEGPHP > /dev/null 2>&1
 <?php
-require '$SCRIPT_DIR/functions.php';
+require '$PROJECT_DIR/functions.php';
 getDomains();
 echo "SHOULD_NOT_REACH";
 LEGPHP

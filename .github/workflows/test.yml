@@ -19,7 +19,7 @@ jobs:
           extensions: curl
 
       - name: Run test suite
-        run: ./test.sh
+        run: ./tests/test.sh
 
   docker-build:
     runs-on: ubuntu-latest
