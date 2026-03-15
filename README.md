@@ -55,7 +55,7 @@ You should probably run this script every few minutes, so that your IP is update
 ### Option 2: Docker
 A Docker image is available for systems without PHP, such as NAS devices. The image includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
 
-Create your `config.php` first (see Configuration above), then follow the instructions for your platform below.
+Create your `config.php` first — use [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) as a template. Then follow the instructions for your platform below.
 
 #### Environment variables
 
