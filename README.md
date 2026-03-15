@@ -57,17 +57,25 @@ A Docker image is available for systems without PHP, such as NAS devices. The im
 
 Create your `config.php` first (see Configuration above), then follow the instructions for your platform below.
 
+#### Environment variables
+
+| Variable        | Default         | Description                              |
+| --------------- | --------------- | ---------------------------------------- |
+| CRON_SCHEDULE   | `*/5 * * * *`   | How often to check for IP changes        |
+| TZ              | UTC             | Timezone for the schedule and log output |
+
+#### Volume mounts
+
+| Container path   | Description                          |
+| ---------------- | ------------------------------------ |
+| `/app/config.php` | Your configuration file (read-only) |
+| `/app/data`       | Persistent IP cache                 |
+
 #### NAS (Synology, QNAP, Unraid)
 1. Search for `stecklars/dynamic-dns-netcup-api` in your NAS Docker GUI and download the image
-2. Create a container with the following settings:
-   * **Volume mounts:**
-     * Map your `config.php` file to `/app/config.php` (read-only)
-     * Map a folder for persistent data (IP cache) to `/app/data`
-   * **Environment variables (optional):**
-     * `CRON_SCHEDULE` — How often to check for IP changes (default: `*/5 * * * *`, i.e., every 5 minutes)
-     * `TZ` — Timezone for the schedule (default: `UTC`, e.g., `Europe/Berlin`)
-   * **Restart policy:** Set to "always" or "unless stopped" so it survives reboots
-3. Start the container — it runs the script immediately and then on the configured schedule
+2. Create a container with the volume mounts and environment variables described above
+3. Set the restart policy to "always" or "unless stopped" so it survives reboots
+4. Start the container — it runs the script immediately and then on the configured schedule
 
 #### Command line
 ```bash
@@ -75,6 +83,7 @@ docker run -d \
   -v ./config.php:/app/config.php:ro \
   -v dyndns-data:/app/data \
   -e CRON_SCHEDULE="*/5 * * * *" \
+  -e TZ=Europe/Berlin \
   --restart unless-stopped \
   stecklars/dynamic-dns-netcup-api
 ```
