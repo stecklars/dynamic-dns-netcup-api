@@ -164,7 +164,7 @@ function sendRequest($request, $apiSessionRetry = false)
 
     if ($result === false) {
         outputStderr("Max retries reached. Exiting due to cURL network error.");
-        curl_close($ch);
+        @curl_close($ch);
         exit(1);
     }
 
@@ -184,7 +184,7 @@ function sendRequest($request, $apiSessionRetry = false)
     // We work around this bug by trying to login again once.
     // See Github issue #21.
     if ($result['statuscode'] === 4001 && $apiSessionRetry === false) {
-        curl_close($ch);
+        @curl_close($ch);
         outputWarning("Received API error 4001: The session id is not in a valid format. Most likely the session expired. Logging in again and retrying once.");
         $newApisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD);
 
@@ -198,7 +198,7 @@ function sendRequest($request, $apiSessionRetry = false)
         return sendRequest($request, true);
     }
 
-    curl_close($ch);
+    @curl_close($ch);
 
     return $result;
 }
@@ -323,13 +323,13 @@ function fetchIPWithFallback($primaryUrl, $fallbackUrl, $validator, $ipResolve =
             if (!curl_errno($ch) && $result !== false) {
                 $publicIP = trim($result);
                 if ($validator($publicIP)) {
-                    curl_close($ch);
+                    @curl_close($ch);
                     return $publicIP;
                 }
             }
         }
 
-        curl_close($ch);
+        @curl_close($ch);
 
         if ($index === 0) {
             outputWarning("$primaryUrl didn't return a valid IP address. Trying fallback $fallbackUrl");

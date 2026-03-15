@@ -86,6 +86,13 @@ To run the script once (e.g., to test your config or force an update):
 docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --force
 ```
 
+#### SELinux note
+On systems with SELinux (Fedora, RHEL, openSUSE), add the `:z` flag to volume mounts so the container can read the config file:
+
+```bash
+docker run --rm -v ./config.php:/app/config.php:ro,z stecklars/dynamic-dns-netcup-api --force
+```
+
 #### IPv6 note
 Docker's default bridge network does not support IPv6. If you use `USE_IPV6=true`, run the container with `--network host` or configure Docker's IPv6 support.
 
