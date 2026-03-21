@@ -19,6 +19,10 @@ if (!defined('USE_IPV4')) {
     define('USE_IPV4', true);
 }
 
+if (!defined('USE_IPV6')) {
+    define('USE_IPV6', false);
+}
+
 if (USE_IPV4 === false && USE_IPV6 === false) {
     outputStderr("IPv4 as well as IPv6 is disabled in config.php. Please activate either IPv4 or IPv6 in config.php. I do not know what I am supposed to do. Exiting.");
     exit(1);
