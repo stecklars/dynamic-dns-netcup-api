@@ -22,6 +22,8 @@ POST endpoints (netcup API variants):
   /api-high-ttl        - infoDnsZone returns TTL=3600 (triggers TTL change)
   /api-session-expire  - First non-login action returns 4001 (triggers re-login)
   /api-session-refresh - First 4001 forces a new session ID that later calls must reuse
+  /api-invalid-json    - Returns a 200 response body that is not JSON
+  /api-invalid-payload - Returns JSON missing required fields
 """
 
 import json
@@ -107,6 +109,8 @@ class MockHandler(BaseHTTPRequestHandler):
             "/api-high-ttl":        self._variant_high_ttl,
             "/api-session-expire":  self._variant_session_expire,
             "/api-session-refresh": self._variant_session_refresh,
+            "/api-invalid-json":    self._variant_invalid_json,
+            "/api-invalid-payload": self._variant_invalid_payload,
             "/api-dup-aaaa":        self._variant_dup_aaaa,
             "/api-ttl-update-fail": self._variant_ttl_update_fail,
             "/api-records-fail":    self._variant_records_fail,
@@ -463,6 +467,17 @@ class MockHandler(BaseHTTPRequestHandler):
             self._success_update_zone(request)
         else:
             self._unknown_action(action)
+
+    def _variant_invalid_json(self, action, request):
+        """Respond with a non-JSON body to test malformed upstream responses."""
+        self._respond(200, "<html>invalid response</html>")
+
+    def _variant_invalid_payload(self, action, request):
+        """Respond with JSON missing required keys like statuscode."""
+        self._respond_json(200, {
+            "status": "success",
+            "shortmessage": "Incomplete payload",
+        })
 
     def _variant_dup_aaaa(self, action, request):
         """Returns normal A records but duplicate AAAA records for hostname '@'.

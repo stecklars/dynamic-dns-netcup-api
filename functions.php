@@ -122,33 +122,30 @@ function initializeCurlHandlerGetIP($url, $ipResolve = CURL_IPRESOLVE_WHATEVER)
 }
 
 // Executes a curl request with retries. Returns the result string on success, or false after all attempts are exhausted.
-function executeCurlWithRetries($ch, $retryLimit = 3)
+function executeCurlWithRetries($ch, $retryLimit = 3, $validator = null)
 {
     $accessed_url = curl_getinfo($ch)['url'];
-
-    $result = curl_exec($ch);
-    if (!curl_errno($ch) && $result !== false) {
-        return $result;
-    }
-
     $retrySleep = defined('RETRY_SLEEP') ? RETRY_SLEEP : 30;
 
-    for ($attempt = 1; $attempt < $retryLimit; $attempt++) {
-        if (curl_errno($ch)) {
-            outputWarning(sprintf(
-                "cURL Error while accessing %s: (%d) %s - Retrying in %d seconds. (Try %d / %d)",
-                $accessed_url, curl_errno($ch), curl_error($ch), $retrySleep, $attempt, $retryLimit
-            ));
-        } else {
-            outputWarning("API at $accessed_url returned invalid answer. Retrying in $retrySleep seconds. (Try $attempt / $retryLimit)");
+    for ($attempt = 1; $attempt <= $retryLimit; $attempt++) {
+        $result = curl_exec($ch);
+        $isValidResult = (!curl_errno($ch) && $result !== false);
+        if ($isValidResult && ($validator === null || $validator($result) === true)) {
+            return $result;
         }
 
-        sleep($retrySleep);
-        outputWarning("Retrying now.");
-        $result = curl_exec($ch);
+        if ($attempt < $retryLimit) {
+            if (curl_errno($ch)) {
+                outputWarning(sprintf(
+                    "cURL Error while accessing %s: (%d) %s - Retrying in %d seconds. (Try %d / %d)",
+                    $accessed_url, curl_errno($ch), curl_error($ch), $retrySleep, $attempt, $retryLimit
+                ));
+            } else {
+                outputWarning("API at $accessed_url returned invalid answer. Retrying in $retrySleep seconds. (Try $attempt / $retryLimit)");
+            }
 
-        if (!curl_errno($ch) && $result !== false) {
-            return $result;
+            sleep($retrySleep);
+            outputWarning("Retrying now.");
         }
     }
 
@@ -157,34 +154,51 @@ function executeCurlWithRetries($ch, $retryLimit = 3)
             "cURL Error while accessing %s: (%d) %s (Try %d / %d)",
             $accessed_url, curl_errno($ch), curl_error($ch), $retryLimit, $retryLimit
         ));
+    } else {
+        outputWarning("API at $accessed_url returned invalid answer. (Try $retryLimit / $retryLimit)");
     }
 
     return false;
+}
+
+function normalizeApiResponse($response)
+{
+    $result = json_decode($response, true);
+
+    if (!is_array($result) || !array_key_exists('status', $result) || !array_key_exists('statuscode', $result)) {
+        return false;
+    }
+
+    if (!isset($result['longmessage']) || !is_string($result['longmessage'])) {
+        $result['longmessage'] = 'API returned an invalid response payload.';
+    } else {
+        $result['longmessage'] = trim(preg_replace('/\s+/', ' ', $result['longmessage']));
+    }
+
+    if (!isset($result['shortmessage']) || !is_string($result['shortmessage'])) {
+        $result['shortmessage'] = '';
+    } else {
+        $result['shortmessage'] = trim(preg_replace('/\s+/', ' ', $result['shortmessage']));
+    }
+
+    return $result;
 }
 
 // Sends $request to netcup Domain API and returns the result
 function sendRequest($request, $apiSessionRetry = false)
 {
     $ch = initializeCurlHandlerPostNetcupAPI($request);
-    $result = executeCurlWithRetries($ch);
+    $result = executeCurlWithRetries($ch, 3, function ($response) {
+        return normalizeApiResponse($response) !== false;
+    });
 
     if ($result === false) {
-        outputStderr("Max retries reached. Exiting due to cURL network error.");
+        outputStderr("Max retries reached. Exiting due to cURL network error or invalid API response.");
         @curl_close($ch);
         exit(1);
     }
 
-    $result = json_decode($result, true);
-
-    // Clean up API error messages: collapse newlines and excessive whitespace
-    // into single spaces (the netcup API sometimes returns messages with
-    // trailing newlines and padding whitespace)
-    if (isset($result['longmessage'])) {
-        $result['longmessage'] = trim(preg_replace('/\s+/', ' ', $result['longmessage']));
-    }
-    if (isset($result['shortmessage'])) {
-        $result['shortmessage'] = trim(preg_replace('/\s+/', ' ', $result['shortmessage']));
-    }
+    $result = normalizeApiResponse($result);
 
     // Due to a bug in the netcup CCP DNS API, sometimes sessions expire too early (statuscode 4001, error message: "The session id is not in a valid format.")
     // We work around this bug by trying to login again once.

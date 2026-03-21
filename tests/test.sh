@@ -23,6 +23,8 @@
 #   17. Full update flow — IPv4 + IPv6 combined
 #   18. Full update flow — quiet mode
 #   19. Full update flow — API login failure
+#   19a. Full update flow — invalid JSON from API fails cleanly
+#   19b. Full update flow — malformed JSON payload fails cleanly
 #   20. Full update flow — garbage IP from primary, fallback succeeds
 #   21. Full update flow — manually provided IPv6
 #   22. Full update flow — IPv6 changed (AAAA update)
@@ -788,6 +790,24 @@ assert_run_exit "exits 1" 1
 assert_output "shows login error" "Error while logging in"
 # Error 4013 should include the hint about wrong credentials
 assert_output "includes credential hint" "wrong API credentials"
+
+# Malformed upstream responses should be retried and then fail with a
+# controlled error instead of PHP warnings from array access on null.
+echo ""
+echo "  --- 19a. Invalid JSON from API ---"
+write_mock_config /api-invalid-json
+run_update
+assert_run_exit "exits 1 on invalid JSON" 1
+assert_output "reports invalid API response" "invalid API response"
+assert_output_missing "does not leak PHP warnings on invalid JSON" "PHP Warning"
+
+echo ""
+echo "  --- 19b. Invalid API payload shape ---"
+write_mock_config /api-invalid-payload
+run_update
+assert_run_exit "exits 1 on invalid payload" 1
+assert_output "reports invalid payload as invalid API response" "invalid API response"
+assert_output_missing "does not leak PHP warnings on invalid payload" "PHP Warning"
 
 # --- 20. Garbage IP from primary, fallback succeeds ---
 # The primary IP URL returns garbage text. The script retries (with
