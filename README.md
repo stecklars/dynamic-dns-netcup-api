@@ -53,7 +53,7 @@ Then, allow `update.php` to be executed by your user:
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
 
 ### Option 2: Docker
-A Docker image is available for systems without PHP, such as NAS devices. The image is built for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi). It includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
+A Docker image is available for systems without PHP, such as NAS devices. The image is built for **linux/amd64**, **linux/arm64**, and **linux/arm/v7** (e.g. Raspberry Pi, NAS devices). It includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
 
 Create your `config.php` first — use [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) as a template. Then follow the instructions for your platform below.
 
