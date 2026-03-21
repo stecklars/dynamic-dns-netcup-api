@@ -261,12 +261,14 @@ function getDomains()
 
     $domains = preg_replace('/\s+/', '', DOMAINLIST);
 
+    $domainlist = array();
     $domainsExploded = explode(';', $domains);
     foreach ($domainsExploded as $element) {
         $arr = explode(':', $element);
         $domainlist[$arr[0]] = $arr[1];
     }
 
+    $result = array();
     foreach ($domainlist as $domain => $subdomainlist) {
         $subdomainarray = explode(',', $subdomainlist);
         $result[$domain] = $subdomainarray;
