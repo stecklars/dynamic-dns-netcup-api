@@ -5,6 +5,7 @@ APP_DIR="${APP_DIR:-/app}"
 CONFIG_PATH="$APP_DIR/config.php"
 DOCKER_CONFIG_PATH="$APP_DIR/config.docker.php"
 DATA_DIR="$APP_DIR/data"
+HEALTHCHECK_PATH="$APP_DIR/healthcheck.php"
 
 mkdir -p "$DATA_DIR"
 
@@ -43,14 +44,15 @@ echo "Starting dynamic DNS client for netcup (cron: $CRON_SCHEDULE)"
 echo "Press Ctrl+C or stop the container to exit."
 
 # Run once immediately so the user gets feedback on startup.
-if ! php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS; then
+if ! php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS || \
+   ! DATA_DIR="$DATA_DIR" php "$HEALTHCHECK_PATH" --mark-success; then
     echo "Initial run failed. Exiting."
     exit 1
 fi
 
 # Set up crontab. Output is redirected to Docker's stdout/stderr
 # so that 'docker logs' shows the script's output.
-echo "$CRON_SCHEDULE php $APP_DIR/update.php -c $DOCKER_CONFIG_PATH $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
+echo "$CRON_SCHEDULE php $APP_DIR/update.php -c $DOCKER_CONFIG_PATH $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2 && DATA_DIR=$DATA_DIR php $HEALTHCHECK_PATH --mark-success >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
 
 # Start crond in the foreground (PID 1).
 exec crond -f -l 2

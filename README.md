@@ -63,6 +63,7 @@ Create your `config.php` first — use [`config.dist.php`](https://github.com/st
 | --------------- | --------------- | ---------------------------------------- |
 | CRON_SCHEDULE   | `*/5 * * * *`   | How often to check for IP changes        |
 | TZ              | UTC             | Timezone for the schedule and log output |
+| HEALTHCHECK_GRACE_SECONDS | `JITTER_MAX + 120` | Extra grace after the next scheduled run before the container becomes unhealthy |
 
 #### Volume mounts
 
@@ -118,6 +119,11 @@ docker logs --tail 20 dyndns        # show last 20 lines
 ```
 
 In docker compose, use `docker compose logs -f`.
+
+#### Container health
+The image defines a Docker `HEALTHCHECK`. It does not run `update.php` again; instead it checks whether the last successful run is still fresh relative to `CRON_SCHEDULE`.
+
+This means irregular schedules are handled correctly. For example, a schedule like `0 3 * * 1-5` stays healthy over the weekend and only turns unhealthy after a weekday run is overdue. The default grace period is `JITTER_MAX + 120` seconds and can be overridden with `HEALTHCHECK_GRACE_SECONDS`.
 
 #### Docker notes
 * **"Permission denied" errors on Fedora, RHEL, or openSUSE**: These systems use SELinux, which blocks container access to mounted files even if file permissions look correct. Fix this by adding the `:z` flag to all volume mounts, e.g., `-v ./config.php:/app/config.php:ro,z -v dyndns-data:/app/data:z`. This does not affect NAS systems.

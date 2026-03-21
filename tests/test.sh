@@ -52,7 +52,12 @@
 #   44. Full update flow — no cache file (first run)
 #   45. Full update flow — config change invalidates cache
 #   46. Docker entrypoint — startup failure exits before scheduling cron
-#   47. Docker entrypoint — startup success schedules cron and starts crond
+#   47. Docker entrypoint — startup success records heartbeat, schedules cron, and starts crond
+#   48. Docker healthcheck — mark-success writes heartbeat file
+#   49. Docker healthcheck — healthy before the next scheduled run is due
+#   50. Docker healthcheck — unhealthy when a scheduled run is overdue
+#   51. Docker healthcheck — weekday-only schedules stay healthy over the weekend
+#   52. Docker image — Dockerfile defines a HEALTHCHECK command
 #
 
 set -uo pipefail
@@ -303,6 +308,50 @@ assert_run_exit() {
         pass "$description"
     else
         fail "$description (expected exit $expected, got $exit_code)"
+    fi
+}
+
+# Run the Docker healthcheck script and capture output + exit code.
+# Reads env vars from the current shell scope:
+#   HEALTHCHECK_APP_DIR
+#   HEALTHCHECK_DATA_DIR
+#   HEALTHCHECK_FILE
+#   HEALTHCHECK_SCHEDULE
+#   HEALTHCHECK_NOW
+#   HEALTHCHECK_GRACE
+#   HEALTHCHECK_TZ
+run_healthcheck() {
+    local extra_args="${*:-}"
+    healthcheck_output=$(
+        env \
+            APP_DIR="$HEALTHCHECK_APP_DIR" \
+            DATA_DIR="$HEALTHCHECK_DATA_DIR" \
+            HEALTHCHECK_FILE="$HEALTHCHECK_FILE" \
+            CRON_SCHEDULE="$HEALTHCHECK_SCHEDULE" \
+            HEALTHCHECK_NOW="$HEALTHCHECK_NOW" \
+            HEALTHCHECK_GRACE_SECONDS="$HEALTHCHECK_GRACE" \
+            TZ="$HEALTHCHECK_TZ" \
+            php "$PROJECT_DIR/healthcheck.php" $extra_args 2>&1
+    ) && healthcheck_exit_code=$? || healthcheck_exit_code=$?
+}
+
+assert_healthcheck_exit() {
+    local description="$1"
+    local expected="$2"
+    if [ "$healthcheck_exit_code" -eq "$expected" ]; then
+        pass "$description"
+    else
+        fail "$description (expected exit $expected, got $healthcheck_exit_code)"
+    fi
+}
+
+assert_healthcheck_output() {
+    local description="$1"
+    local expected="$2"
+    if echo "$healthcheck_output" | grep -qF -- "$expected"; then
+        pass "$description"
+    else
+        fail "$description (expected output to contain '$expected')"
     fi
 }
 
@@ -1313,11 +1362,11 @@ rm -f "$CACHE_TMP"
 fi  # end of cURL/python3 availability check
 
 # ===========================================================================
-# 46-47. DOCKER ENTRYPOINT
+# 46-52. DOCKER ENTRYPOINT / HEALTHCHECK
 # ===========================================================================
 
 echo ""
-echo "=== 46-47. Docker entrypoint ==="
+echo "=== 46-52. Docker entrypoint / healthcheck ==="
 
 # --- 46. Initial failure should abort before scheduling cron ---
 echo ""
@@ -1378,6 +1427,7 @@ ENTRYPOINT_APP="$ENTRYPOINT_TMP/app"
 ENTRYPOINT_BIN="$ENTRYPOINT_TMP/bin"
 ENTRYPOINT_LOG="$ENTRYPOINT_TMP/log.txt"
 ENTRYPOINT_CRONTAB="$ENTRYPOINT_TMP/crontab.txt"
+ENTRYPOINT_HEARTBEAT="$ENTRYPOINT_APP/data/last_success.json"
 mkdir -p "$ENTRYPOINT_APP/data" "$ENTRYPOINT_BIN"
 cat > "$ENTRYPOINT_APP/config.php" <<'EOF'
 <?php
@@ -1385,9 +1435,15 @@ EOF
 cat > "$ENTRYPOINT_APP/update.php" <<'EOF'
 <?php
 EOF
+cat > "$ENTRYPOINT_APP/healthcheck.php" <<'EOF'
+<?php
+EOF
 cat > "$ENTRYPOINT_BIN/php" <<EOF
 #!/bin/sh
 echo "php \$*" >> "$ENTRYPOINT_LOG"
+if [ "\$1" = "$ENTRYPOINT_APP/healthcheck.php" ] && [ "\$2" = "--mark-success" ]; then
+    echo '{"timestamp":1}' > "$ENTRYPOINT_HEARTBEAT"
+fi
 exit 0
 EOF
 cat > "$ENTRYPOINT_BIN/crontab" <<EOF
@@ -1414,11 +1470,18 @@ if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.
 else
     fail "entrypoint runs updater before starting cron"
 fi
-if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.php" "$ENTRYPOINT_CRONTAB" && \
-   grep -qF -- "--quiet >> /proc/1/fd/1 2>> /proc/1/fd/2" "$ENTRYPOINT_CRONTAB"; then
-    pass "entrypoint installs expected cron command"
+if [ -f "$ENTRYPOINT_HEARTBEAT" ] && \
+   grep -qF -- "php $ENTRYPOINT_APP/healthcheck.php --mark-success" "$ENTRYPOINT_LOG"; then
+    pass "entrypoint records a heartbeat after successful startup"
 else
-    fail "entrypoint installs expected cron command"
+    fail "entrypoint records a heartbeat after successful startup"
+fi
+if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.php" "$ENTRYPOINT_CRONTAB" && \
+   grep -qF -- "php $ENTRYPOINT_APP/healthcheck.php --mark-success" "$ENTRYPOINT_CRONTAB" && \
+   grep -qF -- "--quiet >> /proc/1/fd/1 2>> /proc/1/fd/2" "$ENTRYPOINT_CRONTAB"; then
+    pass "entrypoint installs expected cron command with heartbeat update"
+else
+    fail "entrypoint installs expected cron command with heartbeat update"
 fi
 if grep -qF -- "crond -f -l 2" "$ENTRYPOINT_LOG"; then
     pass "entrypoint starts crond in foreground"
@@ -1426,6 +1489,104 @@ else
     fail "entrypoint starts crond in foreground"
 fi
 rm -rf "$ENTRYPOINT_TMP"
+
+# --- 48. healthcheck --mark-success writes a heartbeat file ---
+echo ""
+echo "  --- 48. Healthcheck writes heartbeat ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="*/5 * * * *"
+HEALTHCHECK_NOW="2026-03-21 10:02:00 UTC"
+HEALTHCHECK_GRACE="0"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+run_healthcheck --mark-success
+assert_healthcheck_exit "mark-success exits 0" 0
+if [ -f "$HEALTHCHECK_FILE" ] && grep -qF -- '"timestamp":1774087320' "$HEALTHCHECK_FILE"; then
+    pass "mark-success writes the heartbeat file"
+else
+    fail "mark-success writes the heartbeat file"
+fi
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 49. healthcheck stays healthy before the next scheduled run is due ---
+echo ""
+echo "  --- 49. Healthcheck healthy before next run ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="*/10 * * * *"
+HEALTHCHECK_NOW="2026-03-21 10:09:00 UTC"
+HEALTHCHECK_GRACE="0"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+echo '{"timestamp":1774087320}' > "$HEALTHCHECK_FILE"
+run_healthcheck
+assert_healthcheck_exit "healthcheck exits 0 before the next scheduled run" 0
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 50. healthcheck goes unhealthy after a missed scheduled run ---
+echo ""
+echo "  --- 50. Healthcheck unhealthy after missed run ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="*/5 * * * *"
+HEALTHCHECK_NOW="2026-03-21 10:07:00 UTC"
+HEALTHCHECK_GRACE="30"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+echo '{"timestamp":1774087320}' > "$HEALTHCHECK_FILE"
+run_healthcheck
+assert_healthcheck_exit "healthcheck exits 1 after a missed scheduled run" 1
+assert_healthcheck_output "healthcheck reports the missed scheduled run" "next scheduled run was"
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 51. weekday-only schedules stay healthy over the weekend ---
+echo ""
+echo "  --- 51. Healthcheck respects weekday schedules ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="0 3 * * 1-5"
+HEALTHCHECK_NOW="2026-03-21 12:00:00 UTC"
+HEALTHCHECK_GRACE="0"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+echo '{"timestamp":1773975600}' > "$HEALTHCHECK_FILE"
+run_healthcheck
+assert_healthcheck_exit "weekday-only schedule stays healthy over the weekend" 0
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 52. Dockerfile defines the image healthcheck ---
+echo ""
+echo "  --- 52. Dockerfile healthcheck ---"
+if grep -qF -- 'HEALTHCHECK --interval=1m --timeout=10s --start-period=2m --retries=3 CMD ["php", "/app/healthcheck.php"]' "$PROJECT_DIR/Dockerfile"; then
+    pass "Dockerfile defines the container healthcheck"
+else
+    fail "Dockerfile defines the container healthcheck"
+fi
 
 # ===========================================================================
 # RESULTS
