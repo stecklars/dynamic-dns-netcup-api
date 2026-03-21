@@ -4,6 +4,9 @@ const VERSION = '6.1';
 const SUCCESS = 'success';
 const USERAGENT = "dynamic-dns-netcup-api/" . VERSION ." (by stecklars)";
 
+$quiet = false;
+$forceUpdate = false;
+
 //Check passed options
 $shortopts = "q4:6:c:vhf";
 $longopts = array(

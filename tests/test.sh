@@ -525,11 +525,11 @@ fi
 rm -f "${UNIT_CONFIG}.legacy1.php" "${UNIT_CONFIG}.legacy2.php"
 
 # ===========================================================================
-# 8-36. FULL UPDATE FLOW (mock HTTP server)
+# 8-45. FULL UPDATE FLOW (mock HTTP server)
 # ===========================================================================
 
 echo ""
-echo "=== 8-36. Full update flow (mock server) ==="
+echo "=== 8-45. Full update flow (mock server) ==="
 
 # The full update flow requires the cURL PHP extension and Python 3.
 # Skip all integration tests if either is missing.
