@@ -447,6 +447,80 @@ run_php_custom \
     if ($result === $expected) { echo "OK"; } else { echo "FAIL"; var_dump($result); }
 ' | grep -q "OK" && pass "handles whitespace in DOMAINLIST" || fail "handles whitespace in DOMAINLIST"
 
+# Trailing semicolons should be ignored rather than creating an empty domain
+run_php_custom \
+    "define('CUSTOMERNR','1'); define('APIKEY','k'); define('APIPASSWORD','p');
+     define('APIURL','http://x'); define('USE_IPV4',true); define('USE_IPV6',false);
+     define('CHANGE_TTL',false);
+     define('DOMAINLIST','example.com: @;');
+     define('IPV4_ADDRESS_URL','http://x'); define('IPV4_ADDRESS_URL_FALLBACK','http://x');
+     define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http://x');" \
+    '
+    $result = getDomains();
+    $expected = ["example.com" => ["@"]];
+    if ($result === $expected) { echo "OK"; } else { echo "FAIL"; var_dump($result); }
+' | grep -q "OK" && pass "ignores trailing semicolon in DOMAINLIST" || fail "ignores trailing semicolon in DOMAINLIST"
+
+# Duplicate domain entries should be merged instead of overwritten
+run_php_custom \
+    "define('CUSTOMERNR','1'); define('APIKEY','k'); define('APIPASSWORD','p');
+     define('APIURL','http://x'); define('USE_IPV4',true); define('USE_IPV6',false);
+     define('CHANGE_TTL',false);
+     define('DOMAINLIST','example.com: @; example.com: www, @');
+     define('IPV4_ADDRESS_URL','http://x'); define('IPV4_ADDRESS_URL_FALLBACK','http://x');
+     define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http://x');" \
+    '
+    $result = getDomains();
+    $expected = ["example.com" => ["@", "www"]];
+    if ($result === $expected) { echo "OK"; } else { echo "FAIL"; var_dump($result); }
+' | grep -q "OK" && pass "merges duplicate domain entries in DOMAINLIST" || fail "merges duplicate domain entries in DOMAINLIST"
+
+# Missing ':' separator should exit with a config error.
+local_config="${UNIT_CONFIG}.domainlist1.php"
+cat > "$local_config" <<'DOMEOF'
+<?php
+define('CUSTOMERNR','1'); define('APIKEY','k'); define('APIPASSWORD','p');
+define('APIURL','http://x'); define('USE_IPV4',true); define('USE_IPV6',false);
+define('CHANGE_TTL',false);
+define('DOMAINLIST','example.com');
+define('IPV4_ADDRESS_URL','http://x'); define('IPV4_ADDRESS_URL_FALLBACK','http://x');
+define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http://x');
+DOMEOF
+php -- -c "$local_config" -q <<DOMAINPHP > /dev/null 2>&1
+<?php
+require '$PROJECT_DIR/functions.php';
+getDomains();
+echo "SHOULD_NOT_REACH";
+DOMAINPHP
+if [ $? -ne 0 ]; then
+    pass "DOMAINLIST entry without separator exits with error"
+else
+    fail "DOMAINLIST entry without separator exits with error"
+fi
+
+# Empty host list should exit with a config error.
+local_config="${UNIT_CONFIG}.domainlist2.php"
+cat > "$local_config" <<'DOMEOF'
+<?php
+define('CUSTOMERNR','1'); define('APIKEY','k'); define('APIPASSWORD','p');
+define('APIURL','http://x'); define('USE_IPV4',true); define('USE_IPV6',false);
+define('CHANGE_TTL',false);
+define('DOMAINLIST','example.com:');
+define('IPV4_ADDRESS_URL','http://x'); define('IPV4_ADDRESS_URL_FALLBACK','http://x');
+define('IPV6_ADDRESS_URL','http://x'); define('IPV6_ADDRESS_URL_FALLBACK','http://x');
+DOMEOF
+php -- -c "$local_config" -q <<DOMAINPHP > /dev/null 2>&1
+<?php
+require '$PROJECT_DIR/functions.php';
+getDomains();
+echo "SHOULD_NOT_REACH";
+DOMAINPHP
+if [ $? -ne 0 ]; then
+    pass "DOMAINLIST entry without hosts exits with error"
+else
+    fail "DOMAINLIST entry without hosts exits with error"
+fi
+
 # --- Legacy format (DOMAIN + HOST, no DOMAINLIST) ---
 
 # Legacy format should still work and return [DOMAIN => [HOST]]

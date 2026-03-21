@@ -264,19 +264,28 @@ function getDomains()
         return array(DOMAIN => array(HOST));
     }
 
-    $domains = preg_replace('/\s+/', '', DOMAINLIST);
-
-    $domainlist = array();
-    $domainsExploded = explode(';', $domains);
-    foreach ($domainsExploded as $element) {
-        $arr = explode(':', $element);
-        $domainlist[$arr[0]] = $arr[1];
-    }
-
     $result = array();
-    foreach ($domainlist as $domain => $subdomainlist) {
-        $subdomainarray = explode(',', $subdomainlist);
-        $result[$domain] = $subdomainarray;
+    $domainsExploded = array_filter(explode(';', preg_replace('/\s+/', '', DOMAINLIST)), 'strlen');
+
+    foreach ($domainsExploded as $element) {
+        $arr = explode(':', $element, 2);
+        if (count($arr) !== 2 || $arr[0] === '' || $arr[1] === '') {
+            outputStderr(sprintf("Your configuration file is incorrect. Invalid DOMAINLIST entry \"%s\". Please check the format in config.dist.php. Exiting.", $element));
+            exit(1);
+        }
+
+        $domain = $arr[0];
+        $subdomainarray = array_values(array_filter(explode(',', $arr[1]), 'strlen'));
+        if (count($subdomainarray) === 0) {
+            outputStderr(sprintf("Your configuration file is incorrect. Domain \"%s\" does not define any hosts in DOMAINLIST. Please check the format in config.dist.php. Exiting.", $domain));
+            exit(1);
+        }
+
+        if (!isset($result[$domain])) {
+            $result[$domain] = array();
+        }
+
+        $result[$domain] = array_values(array_unique(array_merge($result[$domain], $subdomainarray)));
     }
 
     return $result;
