@@ -55,7 +55,13 @@ You should probably run this script every few minutes, so that your IP is update
 ### Option 2: Docker
 A Docker image is available for systems without PHP, such as NAS devices. The image is built for **linux/amd64**, **linux/arm64**, and **linux/arm/v7** (e.g. Raspberry Pi, NAS devices). It includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
 
-Create your `config.php` first — use [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) as a template. Then follow the instructions for your platform below.
+Create your `config.php` first — use [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) as a template. Before starting the container in cron mode, verify your config works:
+
+```bash
+docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --run-once
+```
+
+If this runs successfully, proceed with the instructions for your platform below. If it fails, the error message will tell you what to fix. If the container exits immediately after starting in cron mode, check `docker logs dyndns` for the error.
 
 #### Environment variables
 
