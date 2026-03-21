@@ -48,6 +48,10 @@ if (!defined('JITTER_MAX')) {
     define('JITTER_MAX', 30);
 }
 
+if (!defined('CHANGE_TTL')) {
+    define('CHANGE_TTL', false);
+}
+
 if (!defined('CACHE_FILE')) {
     define('CACHE_FILE', __DIR__ . '/cache.json');
 }

@@ -6,6 +6,8 @@ const USERAGENT = "dynamic-dns-netcup-api/" . VERSION ." (by stecklars)";
 
 $quiet = false;
 $forceUpdate = false;
+$providedIPv4 = null;
+$providedIPv6 = null;
 
 //Check passed options
 $shortopts = "q4:6:c:vhf";

@@ -34,6 +34,7 @@ Run tests with `./tests/test.sh`. Requires Bash, PHP-CLI, and Python 3.
 - **IP version forcing:** `CURL_IPRESOLVE_V4` / `CURL_IPRESOLVE_V6` is passed through `fetchIPWithFallback()` → `initializeCurlHandlerGetIP()` to prevent dual-stack servers from returning the wrong address type.
 - **Cache invalidation:** The cache stores a config fingerprint (md5 of DOMAINLIST, USE_IPV4, USE_IPV6, CHANGE_TTL). Config changes automatically invalidate the cache.
 - **Session expiry workaround:** The netcup API has a bug where sessions expire early (error 4001). `sendRequest()` catches this, re-logs in, and retries once.
+- **Unified record update:** `updateDnsRecordsForIP()` handles finding, creating, and updating DNS records for a given subdomain and record type (A or AAAA). Called from `update.php` for each IP version, avoiding duplicated IPv4/IPv6 logic.
 
 ## Common tasks
 
