@@ -16,6 +16,7 @@
 #   11. Full update flow — duplicate A records (error)
 #   12. Full update flow — TTL change (CHANGE_TTL=true)
 #   13. Full update flow — API session expiry & re-login (4001 workaround)
+#   13a. Full update flow — refreshed API session reused for later requests
 #   14. Full update flow — multiple domains in one run
 #   15. Full update flow — wildcard (*) and root (@) subdomains
 #   16. Full update flow — manually provided IPv4
@@ -275,6 +276,20 @@ assert_output_missing() {
         fail "$description (output should not contain '$unexpected')"
     else
         pass "$description"
+    fi
+}
+
+# Assert that $output contains a string an exact number of times.
+assert_output_count() {
+    local description="$1"
+    local expected="$2"
+    local count_expected="$3"
+    local count_actual
+    count_actual=$(printf '%s' "$output" | grep -oF -- "$expected" | wc -l | tr -d '[:space:]')
+    if [ "$count_actual" -eq "$count_expected" ]; then
+        pass "$description"
+    else
+        fail "$description (expected $count_expected occurrence(s) of '$expected', got $count_actual)"
     fi
 }
 
@@ -694,6 +709,18 @@ assert_run_exit "exits 0 after re-login" 0
 assert_output "detects 4001 error" "session id is not in a valid format"
 assert_output "retries after re-login" "Logged in successfully"
 assert_output "completes successfully" "Logged out successfully"
+
+# The refreshed session should be reused for later API calls instead of
+# triggering another 4001 on the next request.
+echo ""
+echo "  --- 13b. Session refresh persists across later API calls ---"
+reset_mock_server
+write_mock_config /api-session-refresh
+run_update
+assert_run_exit "exits 0 after one session refresh" 0
+assert_output_count "performs exactly two login attempts" "Logging into netcup CCP DNS API." 2
+assert_output_count "hits the 4001 workaround only once" "Received API error 4001" 1
+assert_output "logs out after refreshed session" "Logged out successfully"
 
 # --- 14. Multiple domains in one run ---
 # Configure two domains. The script should process both sequentially.

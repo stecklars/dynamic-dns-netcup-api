@@ -21,6 +21,7 @@ POST endpoints (netcup API variants):
   /api-dup-records     - Duplicate A records for same host (triggers error)
   /api-high-ttl        - infoDnsZone returns TTL=3600 (triggers TTL change)
   /api-session-expire  - First non-login action returns 4001 (triggers re-login)
+  /api-session-refresh - First 4001 forces a new session ID that later calls must reuse
 """
 
 import json
@@ -42,6 +43,9 @@ class MockHandler(BaseHTTPRequestHandler):
     # ---- Shared state for stateful test scenarios ----
     # /api-session-expire: first non-login action returns 4001, then resets.
     session_expire_triggered = False
+    session_refresh_triggered = False
+    session_refresh_login_count = 0
+    session_refresh_active_session_id = FAKE_SESSION_ID
 
     def log_message(self, format, *args):
         """Suppress default request logging to keep test output clean."""
@@ -57,6 +61,9 @@ class MockHandler(BaseHTTPRequestHandler):
         elif self.path == "/reset":
             # Reset all stateful counters between tests
             MockHandler.session_expire_triggered = False
+            MockHandler.session_refresh_triggered = False
+            MockHandler.session_refresh_login_count = 0
+            MockHandler.session_refresh_active_session_id = FAKE_SESSION_ID
             self._respond(200, "OK")
 
         elif self.path == "/ipv4":
@@ -99,6 +106,7 @@ class MockHandler(BaseHTTPRequestHandler):
             "/api-dup-records":     self._variant_dup_records,
             "/api-high-ttl":        self._variant_high_ttl,
             "/api-session-expire":  self._variant_session_expire,
+            "/api-session-refresh": self._variant_session_refresh,
             "/api-dup-aaaa":        self._variant_dup_aaaa,
             "/api-ttl-update-fail": self._variant_ttl_update_fail,
             "/api-records-fail":    self._variant_records_fail,
@@ -117,7 +125,7 @@ class MockHandler(BaseHTTPRequestHandler):
     # Common action responses (shared across variants)
     # ==================================================================
 
-    def _success_login(self):
+    def _success_login(self, session_id=FAKE_SESSION_ID):
         """Respond with a successful login."""
         self._respond_json(200, {
             "serverrequestid": "test",
@@ -127,7 +135,7 @@ class MockHandler(BaseHTTPRequestHandler):
             "statuscode": 2000,
             "shortmessage": "Login successful",
             "longmessage": "Session has been created.",
-            "responsedata": {"apisessionid": FAKE_SESSION_ID},
+            "responsedata": {"apisessionid": session_id},
         })
 
     def _success_logout(self):
@@ -405,6 +413,46 @@ class MockHandler(BaseHTTPRequestHandler):
             return
 
         # After re-login: process normally
+        if action == "infoDnsZone":
+            self._success_dns_zone(request)
+        elif action == "infoDnsRecords":
+            self._success_dns_records(self._default_records())
+        elif action == "updateDnsRecords":
+            self._success_update_records(request)
+        elif action == "updateDnsZone":
+            self._success_update_zone(request)
+        else:
+            self._unknown_action(action)
+
+    def _variant_session_refresh(self, action, request):
+        """First non-login action returns 4001 and forces a new session ID.
+        Subsequent requests must use the refreshed session without another 4001."""
+        if action == "login":
+            MockHandler.session_refresh_login_count += 1
+            if MockHandler.session_refresh_login_count == 1:
+                session_id = FAKE_SESSION_ID
+            else:
+                session_id = "test-session-id-refreshed"
+            MockHandler.session_refresh_active_session_id = session_id
+            self._success_login(session_id)
+            return
+
+        if action == "logout":
+            if request["param"].get("apisessionid") != MockHandler.session_refresh_active_session_id:
+                self._error_4001(action)
+            else:
+                self._success_logout()
+            return
+
+        if not MockHandler.session_refresh_triggered:
+            MockHandler.session_refresh_triggered = True
+            self._error_4001(action)
+            return
+
+        if request["param"].get("apisessionid") != MockHandler.session_refresh_active_session_id:
+            self._error_4001(action)
+            return
+
         if action == "infoDnsZone":
             self._success_dns_zone(request)
         elif action == "infoDnsRecords":

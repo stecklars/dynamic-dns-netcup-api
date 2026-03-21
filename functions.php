@@ -8,6 +8,7 @@ $quiet = false;
 $forceUpdate = false;
 $providedIPv4 = null;
 $providedIPv6 = null;
+$runtimeApiSessionId = null;
 
 //Check passed options
 $shortopts = "q4:6:c:vhf";
@@ -193,8 +194,8 @@ function sendRequest($request, $apiSessionRetry = false)
         outputWarning("Received API error 4001: The session id is not in a valid format. Most likely the session expired. Logging in again and retrying once.");
         $newApisessionid = login(CUSTOMERNR, APIKEY, APIPASSWORD);
 
-        global $apisessionid;
-        $apisessionid = $newApisessionid;
+        global $runtimeApiSessionId;
+        $runtimeApiSessionId = $newApisessionid;
 
         $request = json_decode($request, true);
         $request['param']['apisessionid'] = $newApisessionid;
@@ -246,6 +247,17 @@ function outputStderr($message)
     $output = sprintf("[%s][ERROR] %s\n", $date, $message);
 
     fwrite(STDERR, $output);
+}
+
+function getActiveApiSessionId($apisessionid)
+{
+    global $runtimeApiSessionId;
+
+    if (!empty($runtimeApiSessionId)) {
+        return $runtimeApiSessionId;
+    }
+
+    return $apisessionid;
 }
 
 //Returns list of domains with their subdomains for which we are supposed to perform changes
@@ -401,7 +413,9 @@ function login($customernr, $apikey, $apipassword)
     $result = sendRequest($request);
 
     if ($result['status'] === SUCCESS) {
-        return $result['responsedata']['apisessionid'];
+        global $runtimeApiSessionId;
+        $runtimeApiSessionId = $result['responsedata']['apisessionid'];
+        return $runtimeApiSessionId;
     }
 
     // Error from API: "More than 180 requests per minute. Please wait and retry later. Please contact our customer service to find out if the limitation of requests can be increased."
@@ -417,6 +431,7 @@ function login($customernr, $apikey, $apipassword)
 function logout($customernr, $apikey, $apisessionid)
 {
     outputStdout("Logging out from netcup CCP DNS API.");
+    $apisessionid = getActiveApiSessionId($apisessionid);
     $logoutdata = array(
         'action' => 'logout',
         'param' =>
@@ -443,6 +458,7 @@ function logout($customernr, $apikey, $apisessionid)
 function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
 {
     outputStdout(sprintf('Getting Domain info for "%s".', $domainname));
+    $apisessionid = getActiveApiSessionId($apisessionid);
 
     $infoDnsZoneData = array(
         'action' => 'infoDnsZone',
@@ -471,6 +487,7 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
 function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
 {
     outputStdout(sprintf('Getting DNS records data for "%s".', $domainname));
+    $apisessionid = getActiveApiSessionId($apisessionid);
 
     $infoDnsRecordsData = array(
         'action' => 'infoDnsRecords',
@@ -499,6 +516,7 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
 function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszone)
 {
     outputStdout(sprintf('Updating DNS zone for "%s".', $domainname));
+    $apisessionid = getActiveApiSessionId($apisessionid);
 
     $updateDnsZoneData = array(
         'action' => 'updateDnsZone',
@@ -528,6 +546,7 @@ function updateDnsZone($domainname, $customernr, $apikey, $apisessionid, $dnszon
 function updateDnsRecords($domainname, $customernr, $apikey, $apisessionid, $dnsrecords)
 {
     outputStdout(sprintf('Updating DNS records for "%s".', $domainname));
+    $apisessionid = getActiveApiSessionId($apisessionid);
 
     $updateDnsZoneData = array(
         'action' => 'updateDnsRecords',
