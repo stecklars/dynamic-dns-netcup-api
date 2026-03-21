@@ -48,6 +48,8 @@
 #   43. Full update flow — cache with IPv4+IPv6
 #   44. Full update flow — no cache file (first run)
 #   45. Full update flow — config change invalidates cache
+#   46. Docker entrypoint — startup failure exits before scheduling cron
+#   47. Docker entrypoint — startup success schedules cron and starts crond
 #
 
 set -uo pipefail
@@ -1262,6 +1264,121 @@ assert_output "processes new subdomain" 'Updating DNS records for subdomain "www
 rm -f "$CACHE_TMP"
 
 fi  # end of cURL/python3 availability check
+
+# ===========================================================================
+# 46-47. DOCKER ENTRYPOINT
+# ===========================================================================
+
+echo ""
+echo "=== 46-47. Docker entrypoint ==="
+
+# --- 46. Initial failure should abort before scheduling cron ---
+echo ""
+echo "  --- 46. Entrypoint fails fast on startup error ---"
+ENTRYPOINT_TMP="$(mktemp -d)"
+ENTRYPOINT_APP="$ENTRYPOINT_TMP/app"
+ENTRYPOINT_BIN="$ENTRYPOINT_TMP/bin"
+ENTRYPOINT_LOG="$ENTRYPOINT_TMP/log.txt"
+ENTRYPOINT_CRONTAB="$ENTRYPOINT_TMP/crontab.txt"
+mkdir -p "$ENTRYPOINT_APP/data" "$ENTRYPOINT_BIN"
+cat > "$ENTRYPOINT_APP/config.php" <<'EOF'
+<?php
+EOF
+cat > "$ENTRYPOINT_APP/update.php" <<'EOF'
+<?php
+EOF
+cat > "$ENTRYPOINT_BIN/php" <<EOF
+#!/bin/sh
+echo "php \$*" >> "$ENTRYPOINT_LOG"
+exit 1
+EOF
+cat > "$ENTRYPOINT_BIN/crontab" <<EOF
+#!/bin/sh
+cat > "$ENTRYPOINT_CRONTAB"
+echo "crontab \$*" >> "$ENTRYPOINT_LOG"
+exit 0
+EOF
+cat > "$ENTRYPOINT_BIN/crond" <<EOF
+#!/bin/sh
+echo "crond \$*" >> "$ENTRYPOINT_LOG"
+exit 0
+EOF
+chmod +x "$ENTRYPOINT_BIN/php" "$ENTRYPOINT_BIN/crontab" "$ENTRYPOINT_BIN/crond"
+entrypoint_output=$(PATH="$ENTRYPOINT_BIN:$PATH" APP_DIR="$ENTRYPOINT_APP" CRON_SCHEDULE="*/10 * * * *" sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1)
+entrypoint_status=$?
+if [ "$entrypoint_status" -eq 1 ]; then
+    pass "entrypoint exits 1 when initial update fails"
+else
+    fail "entrypoint exits 1 when initial update fails (got $entrypoint_status)"
+fi
+if echo "$entrypoint_output" | grep -qF -- "Initial run failed. Exiting."; then
+    pass "entrypoint reports initial failure"
+else
+    fail "entrypoint reports initial failure"
+fi
+if [ ! -f "$ENTRYPOINT_CRONTAB" ] && ! grep -q "^crond " "$ENTRYPOINT_LOG" 2>/dev/null; then
+    pass "entrypoint does not schedule cron after startup failure"
+else
+    fail "entrypoint does not schedule cron after startup failure"
+fi
+rm -rf "$ENTRYPOINT_TMP"
+
+# --- 47. Successful startup should install cron and start crond ---
+echo ""
+echo "  --- 47. Entrypoint schedules cron after successful startup ---"
+ENTRYPOINT_TMP="$(mktemp -d)"
+ENTRYPOINT_APP="$ENTRYPOINT_TMP/app"
+ENTRYPOINT_BIN="$ENTRYPOINT_TMP/bin"
+ENTRYPOINT_LOG="$ENTRYPOINT_TMP/log.txt"
+ENTRYPOINT_CRONTAB="$ENTRYPOINT_TMP/crontab.txt"
+mkdir -p "$ENTRYPOINT_APP/data" "$ENTRYPOINT_BIN"
+cat > "$ENTRYPOINT_APP/config.php" <<'EOF'
+<?php
+EOF
+cat > "$ENTRYPOINT_APP/update.php" <<'EOF'
+<?php
+EOF
+cat > "$ENTRYPOINT_BIN/php" <<EOF
+#!/bin/sh
+echo "php \$*" >> "$ENTRYPOINT_LOG"
+exit 0
+EOF
+cat > "$ENTRYPOINT_BIN/crontab" <<EOF
+#!/bin/sh
+cat > "$ENTRYPOINT_CRONTAB"
+echo "crontab \$*" >> "$ENTRYPOINT_LOG"
+exit 0
+EOF
+cat > "$ENTRYPOINT_BIN/crond" <<EOF
+#!/bin/sh
+echo "crond \$*" >> "$ENTRYPOINT_LOG"
+exit 0
+EOF
+chmod +x "$ENTRYPOINT_BIN/php" "$ENTRYPOINT_BIN/crontab" "$ENTRYPOINT_BIN/crond"
+entrypoint_output=$(PATH="$ENTRYPOINT_BIN:$PATH" APP_DIR="$ENTRYPOINT_APP" CRON_SCHEDULE="*/10 * * * *" sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet 2>&1)
+entrypoint_status=$?
+if [ "$entrypoint_status" -eq 0 ]; then
+    pass "entrypoint exits 0 after successful startup"
+else
+    fail "entrypoint exits 0 after successful startup (got $entrypoint_status)"
+fi
+if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.php --quiet" "$ENTRYPOINT_LOG"; then
+    pass "entrypoint runs updater before starting cron"
+else
+    fail "entrypoint runs updater before starting cron"
+fi
+if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.php" "$ENTRYPOINT_CRONTAB" && \
+   grep -qF -- "--quiet >> /proc/1/fd/1 2>> /proc/1/fd/2" "$ENTRYPOINT_CRONTAB"; then
+    pass "entrypoint installs expected cron command"
+else
+    fail "entrypoint installs expected cron command"
+fi
+if grep -qF -- "crond -f -l 2" "$ENTRYPOINT_LOG"; then
+    pass "entrypoint starts crond in foreground"
+else
+    fail "entrypoint starts crond in foreground"
+fi
+rm -rf "$ENTRYPOINT_TMP"
 
 # ===========================================================================
 # RESULTS

@@ -1,12 +1,20 @@
 #!/bin/sh
+set -eu
+
+APP_DIR="${APP_DIR:-/app}"
+CONFIG_PATH="$APP_DIR/config.php"
+DOCKER_CONFIG_PATH="$APP_DIR/config.docker.php"
+DATA_DIR="$APP_DIR/data"
+
+mkdir -p "$DATA_DIR"
 
 # Generate a wrapper config that includes the user's config.php and sets
 # Docker-specific defaults (cache file path inside the persistent volume).
-cat > /app/config.docker.php <<'CONFIGEOF'
+cat > "$DOCKER_CONFIG_PATH" <<CONFIGEOF
 <?php
-require '/app/config.php';
+require '$CONFIG_PATH';
 if (!defined('CACHE_FILE')) {
-    define('CACHE_FILE', '/app/data/cache.json');
+    define('CACHE_FILE', '$DATA_DIR/cache.json');
 }
 CONFIGEOF
 
@@ -25,7 +33,7 @@ done
 
 # One-shot mode: run once and exit.
 if [ "$RUN_ONCE" = "true" ]; then
-    exec php /app/update.php -c /app/config.docker.php $ARGS
+    exec php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS
 fi
 
 # Cron mode (default)
@@ -35,11 +43,14 @@ echo "Starting dynamic DNS client for netcup (cron: $CRON_SCHEDULE)"
 echo "Press Ctrl+C or stop the container to exit."
 
 # Run once immediately so the user gets feedback on startup.
-php /app/update.php -c /app/config.docker.php $ARGS
+if ! php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS; then
+    echo "Initial run failed. Exiting."
+    exit 1
+fi
 
 # Set up crontab. Output is redirected to Docker's stdout/stderr
 # so that 'docker logs' shows the script's output.
-echo "$CRON_SCHEDULE php /app/update.php -c /app/config.docker.php $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
+echo "$CRON_SCHEDULE php $APP_DIR/update.php -c $DOCKER_CONFIG_PATH $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
 
 # Start crond in the foreground (PID 1).
 exec crond -f -l 2
