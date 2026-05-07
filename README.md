@@ -146,7 +146,7 @@ docker run -d --name dyndns \
 | DOMAINLIST                     | yes      | —                             | Domain configuration (see [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) for the format) |
 | USE_IPV4                       | no       | `true`                        | Update A records                                           |
 | USE_IPV6                       | no       | `false`                       | Update AAAA records                                        |
-| CHANGE_TTL                     | no       | `false`                       | Lower TTL to 300 seconds on each run                       |
+| CHANGE_TTL                     | no       | `true`                        | Lower TTL to 300 seconds on each run                       |
 | APIURL                         | no       | `https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON` | Override the netcup API endpoint |
 | IPV4_ADDRESS_URL               | no       | `https://get-ipv4.steck.cc`   | Primary IPv4 lookup URL                                    |
 | IPV4_ADDRESS_URL_FALLBACK      | no       | `https://ipv4.seeip.org`      | Fallback IPv4 lookup URL                                   |

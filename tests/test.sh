@@ -1813,7 +1813,7 @@ else
     fail "env-mode generated config.php has valid PHP syntax"
 fi
 verify=$(php -r "require '$ENV_APP/config.php'; echo CUSTOMERNR.'|'.APIKEY.'|'.APIPASSWORD.'|'.DOMAINLIST.'|'.var_export(USE_IPV4, true).'|'.var_export(USE_IPV6, true).'|'.var_export(CHANGE_TTL, true).'|'.APIURL;" 2>/dev/null)
-expected="12345|testkey|testpass|example.com: @, www|true|false|false|https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
+expected="12345|testkey|testpass|example.com: @, www|true|false|true|https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
 if [ "$verify" = "$expected" ]; then
     pass "env-mode generated config has expected values + defaults"
 else

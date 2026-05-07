@@ -53,7 +53,9 @@ if (!defined('JITTER_MAX')) {
 }
 
 if (!defined('CHANGE_TTL')) {
-    define('CHANGE_TTL', false);
+    // Match the value shipped in config.dist.php so users who delete the
+    // line get the recommended behaviour rather than the opposite.
+    define('CHANGE_TTL', true);
 }
 
 if (!defined('CACHE_FILE')) {

@@ -89,7 +89,7 @@ generate_config_from_env() {
         echo "Invalid USE_IPV6 value. Expected true/false/1/0/yes/no/on/off." >&2
         exit 1
     fi
-    if ! change_ttl_php=$(env_to_php_bool "${CHANGE_TTL:-false}"); then
+    if ! change_ttl_php=$(env_to_php_bool "${CHANGE_TTL:-true}"); then
         echo "Invalid CHANGE_TTL value. Expected true/false/1/0/yes/no/on/off." >&2
         exit 1
     fi
