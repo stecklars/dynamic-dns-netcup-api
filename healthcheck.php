@@ -124,8 +124,23 @@ function writeHeartbeat()
         'datetime' => formatTimestamp($timestamp),
     ));
 
-    if ($payload === false || file_put_contents($heartbeatPath, $payload) === false) {
-        failHealthcheck(sprintf('Could not write heartbeat file "%s".', $heartbeatPath));
+    if ($payload === false) {
+        failHealthcheck(sprintf('Could not encode heartbeat payload for "%s".', $heartbeatPath));
+    }
+
+    // Write to a sibling tmp file and rename it into place. file_put_contents
+    // truncates the destination first, so a healthcheck that fires between
+    // the truncate and the write would otherwise observe an empty file and
+    // declare the container unhealthy. rename() is atomic on POSIX as long
+    // as both paths share a filesystem (we keep them in the same directory).
+    $tmpPath = $heartbeatPath . '.tmp';
+    if (file_put_contents($tmpPath, $payload) === false) {
+        failHealthcheck(sprintf('Could not write heartbeat tmp file "%s".', $tmpPath));
+    }
+
+    if (!rename($tmpPath, $heartbeatPath)) {
+        @unlink($tmpPath);
+        failHealthcheck(sprintf('Could not rename heartbeat tmp file to "%s".', $heartbeatPath));
     }
 }
 

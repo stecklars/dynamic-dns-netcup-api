@@ -1603,6 +1603,13 @@ if [ -f "$HEALTHCHECK_FILE" ] && grep -qF -- '"timestamp":1774087320' "$HEALTHCH
 else
     fail "mark-success writes the heartbeat file"
 fi
+# The atomic write goes through a sibling .tmp path; it must be gone
+# after the rename so a stray previous run can't confuse anyone.
+if [ ! -e "${HEALTHCHECK_FILE}.tmp" ]; then
+    pass "mark-success leaves no .tmp leftover"
+else
+    fail "mark-success leaves no .tmp leftover (still at ${HEALTHCHECK_FILE}.tmp)"
+fi
 rm -rf "$HEALTHCHECK_TMP"
 
 # --- 49. healthcheck stays healthy before the next scheduled run is due ---
