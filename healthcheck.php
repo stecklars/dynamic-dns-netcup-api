@@ -196,6 +196,7 @@ function parseCronField($field, $min, $max, $aliases = array(), $normalizeDayOfW
         }
 
         $step = 1;
+        $hasStep = false;
         if (strpos($segment, '/') !== false) {
             $stepParts = explode('/', $segment, 2);
             if (count($stepParts) !== 2 || $stepParts[0] === '' || $stepParts[1] === '') {
@@ -208,6 +209,7 @@ function parseCronField($field, $min, $max, $aliases = array(), $normalizeDayOfW
 
             $segment = $stepParts[0];
             $step = (int) $stepParts[1];
+            $hasStep = true;
         }
 
         if ($segment === '*') {
@@ -223,7 +225,11 @@ function parseCronField($field, $min, $max, $aliases = array(), $normalizeDayOfW
             $end = resolveCronValue($rangeParts[1], $aliases);
         } else {
             $start = resolveCronValue($segment, $aliases);
-            $end = $start;
+            // Vixie/busybox cron treats "M/N" as "M-MAX/N", not as the
+            // single value M. Without this, schedules like "30/15" parse
+            // as {30} here while crond fires at minutes {30, 45}, leading
+            // to false unhealthies.
+            $end = $hasStep ? $max : $start;
         }
 
         if ($start === false || $end === false || $start < $min || $end > $max || $start > $end) {

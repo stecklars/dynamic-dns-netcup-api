@@ -58,6 +58,8 @@
 #   49. Docker healthcheck — healthy before the next scheduled run is due
 #   50. Docker healthcheck — unhealthy when a scheduled run is overdue
 #   51. Docker healthcheck — weekday-only schedules stay healthy over the weekend
+#   51a. Docker healthcheck — cron "M/N" shorthand expands to "M-MAX/N" (Vixie/busybox semantics)
+#   51b. Docker healthcheck — cron alphabetic day-of-week aliases (MON-FRI) parse correctly
 #   52. Docker image — Dockerfile defines a HEALTHCHECK command
 #   53. Docker entrypoint — env-mode generates config.php from environment variables
 #   54. Docker entrypoint — env-mode missing required variables fails fast
@@ -1650,6 +1652,61 @@ EOF
 echo '{"timestamp":1773975600}' > "$HEALTHCHECK_FILE"
 run_healthcheck
 assert_healthcheck_exit "weekday-only schedule stays healthy over the weekend" 0
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 51a. Cron "M/N" shorthand expands to "M-MAX/N" (Vixie/busybox semantics) ---
+# Regression guard: a buggy parser that treats "30/15" as just {30} would
+# predict the next firing at 11:30 instead of the correct 10:45 and
+# falsely keep the container marked healthy past 10:45.
+echo ""
+echo "  --- 51a. Healthcheck cron M/N shorthand ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="30/15 * * * *"
+HEALTHCHECK_NOW="2026-03-21 10:46:00 UTC"
+HEALTHCHECK_GRACE="0"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+# Heartbeat at 10:30 UTC. With "30/15" the next firing must be 10:45.
+echo '{"timestamp":1774089000}' > "$HEALTHCHECK_FILE"
+run_healthcheck
+assert_healthcheck_exit "M/N shorthand: at 10:46 with last success 10:30, container is unhealthy" 1
+
+# At 10:44 (one minute before the 10:45 firing), the container is still
+# healthy — proves the parser hasn't gone the other way and started
+# treating the schedule as an every-minute fire.
+HEALTHCHECK_NOW="2026-03-21 10:44:00 UTC"
+run_healthcheck
+assert_healthcheck_exit "M/N shorthand: at 10:44 with last success 10:30, container is still healthy" 0
+rm -rf "$HEALTHCHECK_TMP"
+
+# --- 51b. Cron alphabetic day-of-week aliases (MON-FRI) ---
+# The parser accepts MON/TUE/.../SUN aliases. Mirror test 51 but use the
+# alphabetic form to make sure the alias path is exercised end to end.
+echo ""
+echo "  --- 51b. Healthcheck respects MON-FRI alias ---"
+HEALTHCHECK_TMP="$(mktemp -d)"
+HEALTHCHECK_APP_DIR="$HEALTHCHECK_TMP/app"
+HEALTHCHECK_DATA_DIR="$HEALTHCHECK_APP_DIR/data"
+HEALTHCHECK_FILE="$HEALTHCHECK_DATA_DIR/last_success.json"
+HEALTHCHECK_SCHEDULE="0 3 * * MON-FRI"
+HEALTHCHECK_NOW="2026-03-21 12:00:00 UTC"
+HEALTHCHECK_GRACE="0"
+HEALTHCHECK_TZ="UTC"
+mkdir -p "$HEALTHCHECK_DATA_DIR"
+cat > "$HEALTHCHECK_APP_DIR/config.php" <<'EOF'
+<?php
+define('JITTER_MAX', 30);
+EOF
+echo '{"timestamp":1773975600}' > "$HEALTHCHECK_FILE"
+run_healthcheck
+assert_healthcheck_exit "MON-FRI alias schedule stays healthy over the weekend" 0
 rm -rf "$HEALTHCHECK_TMP"
 
 # --- 52. Dockerfile defines the image healthcheck ---
