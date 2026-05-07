@@ -17,7 +17,7 @@ Three source files, no framework, no dependencies beyond PHP-CLI with cURL:
 - **No autoloading, no Composer, no classes.** The script is intentionally simple — a single `php update.php` invocation. Keep it that way.
 - **Constants for config.** All config values are PHP `define()` constants. They cannot be redefined at runtime, which affects testing (each test case needing different constants requires a separate PHP process).
 - **CLI parsing happens at include time** in `functions.php` (lines 8-70). This means `require`-ing `functions.php` in tests triggers `getopt()`, config loading, and potential `exit()` calls. Tests work around this by passing `-c <config>` and `-q` via CLI args to a `php` process reading from stdin.
-- **Global variables** (`$quiet`, `$forceUpdate`, `$providedIPv4`, `$providedIPv6`, `$apisessionid`) are used for state. Functions access them via `global`.
+- **Global variables** (`$quiet`, `$forceUpdate`, `$providedIPv4`, `$providedIPv6`, `$runtimeApiSessionId`) are used for state. Functions access them via `global`. `$runtimeApiSessionId` is the source of truth for the current API session — it gets refreshed when the netcup 4001 workaround re-logs in mid-run, so action helpers reach for it via `getActiveApiSessionId()` rather than trusting their own `$apisessionid` parameter.
 
 ## Testing
 
