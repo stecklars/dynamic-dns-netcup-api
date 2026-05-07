@@ -9,6 +9,116 @@ HEALTHCHECK_PATH="$APP_DIR/healthcheck.php"
 
 mkdir -p "$DATA_DIR"
 
+# Escape a string value for safe inclusion in a PHP single-quoted string.
+# In PHP single-quoted strings, only \\ and \' are special, so we escape
+# backslashes first and then single quotes.
+escape_php_single() {
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g"
+}
+
+# Convert an env var value to a PHP boolean literal ("true" or "false").
+# Accepts true/false/1/0/yes/no/on/off, case-insensitive. Returns 1 if
+# the value is unrecognised so the caller can produce a contextual error.
+env_to_php_bool() {
+    case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+        true|1|yes|on)
+            echo "true"
+            ;;
+        false|0|no|off)
+            echo "false"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Validate a non-negative integer env var value. Returns 1 on failure.
+validate_uint() {
+    printf '%s' "$1" | grep -Eq '^[0-9]+$'
+}
+
+# Generate $CONFIG_PATH from environment variables. Required: CUSTOMERNR,
+# APIKEY, APIPASSWORD, DOMAINLIST. Optional: USE_IPV4, USE_IPV6, CHANGE_TTL
+# (booleans), IPV4_ADDRESS_URL[_FALLBACK], IPV6_ADDRESS_URL[_FALLBACK],
+# RETRY_SLEEP, JITTER_MAX.
+generate_config_from_env() {
+    missing=""
+    [ -n "${CUSTOMERNR:-}" ] || missing="$missing CUSTOMERNR"
+    [ -n "${APIKEY:-}" ] || missing="$missing APIKEY"
+    [ -n "${APIPASSWORD:-}" ] || missing="$missing APIPASSWORD"
+    [ -n "${DOMAINLIST:-}" ] || missing="$missing DOMAINLIST"
+    if [ -n "$missing" ]; then
+        echo "Missing required environment variable(s):$missing" >&2
+        echo "Either mount a config.php at $CONFIG_PATH or provide CUSTOMERNR, APIKEY, APIPASSWORD, and DOMAINLIST as environment variables." >&2
+        exit 1
+    fi
+
+    if ! use_ipv4_php=$(env_to_php_bool "${USE_IPV4:-true}"); then
+        echo "Invalid USE_IPV4 value '${USE_IPV4}'. Expected true/false/1/0/yes/no/on/off." >&2
+        exit 1
+    fi
+    if ! use_ipv6_php=$(env_to_php_bool "${USE_IPV6:-false}"); then
+        echo "Invalid USE_IPV6 value '${USE_IPV6}'. Expected true/false/1/0/yes/no/on/off." >&2
+        exit 1
+    fi
+    if ! change_ttl_php=$(env_to_php_bool "${CHANGE_TTL:-false}"); then
+        echo "Invalid CHANGE_TTL value '${CHANGE_TTL}'. Expected true/false/1/0/yes/no/on/off." >&2
+        exit 1
+    fi
+
+    if [ -n "${RETRY_SLEEP:-}" ] && ! validate_uint "$RETRY_SLEEP"; then
+        echo "Invalid RETRY_SLEEP value '${RETRY_SLEEP}'. Expected a non-negative integer." >&2
+        exit 1
+    fi
+    if [ -n "${JITTER_MAX:-}" ] && ! validate_uint "$JITTER_MAX"; then
+        echo "Invalid JITTER_MAX value '${JITTER_MAX}'. Expected a non-negative integer." >&2
+        exit 1
+    fi
+
+    {
+        echo "<?php"
+        echo "// Generated from environment variables by docker-entrypoint.sh"
+        printf "define('CUSTOMERNR', '%s');\n" "$(escape_php_single "$CUSTOMERNR")"
+        printf "define('APIKEY', '%s');\n" "$(escape_php_single "$APIKEY")"
+        printf "define('APIPASSWORD', '%s');\n" "$(escape_php_single "$APIPASSWORD")"
+        printf "define('DOMAINLIST', '%s');\n" "$(escape_php_single "$DOMAINLIST")"
+        echo "define('USE_IPV4', $use_ipv4_php);"
+        echo "define('USE_IPV6', $use_ipv6_php);"
+        echo "define('CHANGE_TTL', $change_ttl_php);"
+        api_url="${APIURL:-https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON}"
+        printf "define('APIURL', '%s');\n" "$(escape_php_single "$api_url")"
+
+        if [ -n "${IPV4_ADDRESS_URL:-}" ]; then
+            printf "define('IPV4_ADDRESS_URL', '%s');\n" "$(escape_php_single "$IPV4_ADDRESS_URL")"
+        fi
+        if [ -n "${IPV4_ADDRESS_URL_FALLBACK:-}" ]; then
+            printf "define('IPV4_ADDRESS_URL_FALLBACK', '%s');\n" "$(escape_php_single "$IPV4_ADDRESS_URL_FALLBACK")"
+        fi
+        if [ -n "${IPV6_ADDRESS_URL:-}" ]; then
+            printf "define('IPV6_ADDRESS_URL', '%s');\n" "$(escape_php_single "$IPV6_ADDRESS_URL")"
+        fi
+        if [ -n "${IPV6_ADDRESS_URL_FALLBACK:-}" ]; then
+            printf "define('IPV6_ADDRESS_URL_FALLBACK', '%s');\n" "$(escape_php_single "$IPV6_ADDRESS_URL_FALLBACK")"
+        fi
+        if [ -n "${RETRY_SLEEP:-}" ]; then
+            echo "define('RETRY_SLEEP', $RETRY_SLEEP);"
+        fi
+        if [ -n "${JITTER_MAX:-}" ]; then
+            echo "define('JITTER_MAX', $JITTER_MAX);"
+        fi
+    } > "$CONFIG_PATH"
+
+    echo "Loading config from environment variables (wrote $CONFIG_PATH)."
+}
+
+# Use a mounted config.php if present, otherwise generate one from env vars.
+if [ -f "$CONFIG_PATH" ]; then
+    echo "Loading config from $CONFIG_PATH."
+else
+    generate_config_from_env
+fi
+
 # Generate a wrapper config that includes the user's config.php and sets
 # Docker-specific defaults (cache file path inside the persistent volume).
 cat > "$DOCKER_CONFIG_PATH" <<CONFIGEOF

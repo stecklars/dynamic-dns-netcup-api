@@ -1,12 +1,23 @@
 services:
   dyndns:
     build: .
+    # Default: mount your config.php as a read-only file. To configure
+    # entirely via environment variables instead, remove the config.php
+    # line below and uncomment the configuration env vars further down.
     volumes:
       - ./config.php:/app/config.php:ro
       - dyndns-data:/app/data
     environment:
       - CRON_SCHEDULE=*/5 * * * *
       # - TZ=Europe/Berlin
+      # --- Alternative: configure via environment variables ---
+      # - CUSTOMERNR=12345
+      # - APIKEY=your-api-key
+      # - APIPASSWORD=your-api-password
+      # - DOMAINLIST=example.com: @, www
+      # - USE_IPV4=true
+      # - USE_IPV6=false
+      # - CHANGE_TTL=true
     restart: unless-stopped
 
 volumes:

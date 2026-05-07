@@ -53,7 +53,9 @@ Then, allow `update.php` to be executed by your user:
 You should probably run this script every few minutes, so that your IP is updated as quickly as possible. Add it to your cronjobs and run it regularly, for example every five minutes.
 
 ### Option 2: Docker
-A Docker image is available for systems without PHP, such as NAS devices. The image is built for **linux/amd64**, **linux/arm64**, and **linux/arm/v7** (e.g. Raspberry Pi, NAS devices). It includes PHP, cURL, and a built-in scheduler — no additional setup required. You only need to provide your `config.php`.
+A Docker image is available for systems without PHP, such as NAS devices. The image is built for **linux/amd64**, **linux/arm64**, and **linux/arm/v7** (e.g. Raspberry Pi, NAS devices). It includes PHP, cURL, and a built-in scheduler — no additional setup required.
+
+You can configure the container either by **mounting a `config.php`** (steps below) or by **passing environment variables** ([details](#configuration-via-environment-variables)). Pick whichever fits your workflow — the file mount takes precedence if both are present.
 
 Create your `config.php` first — use [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) as a template. Before starting the container in cron mode, verify your config works:
 
@@ -63,7 +65,7 @@ docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-
 
 If this runs successfully, proceed with the instructions for your platform below. If it fails, the error message will tell you what to fix. If the container exits immediately after starting in cron mode, check `docker logs dyndns` for the error.
 
-#### Environment variables
+#### Container environment variables
 
 | Variable        | Default         | Description                              |
 | --------------- | --------------- | ---------------------------------------- |
@@ -71,11 +73,13 @@ If this runs successfully, proceed with the instructions for your platform below
 | TZ              | UTC             | Timezone for the schedule and log output |
 | HEALTHCHECK_GRACE_SECONDS | `JITTER_MAX + 120` | Extra grace after the next scheduled run before the container becomes unhealthy |
 
+(See [Configuration via environment variables](#configuration-via-environment-variables) for the env vars that replace `config.php`.)
+
 #### Volume mounts
 
 | Container path   | Description                          |
 | ---------------- | ------------------------------------ |
-| `/app/config.php` | Your configuration file (read-only) |
+| `/app/config.php` | Your configuration file (read-only). Optional when [configuring via environment variables](#configuration-via-environment-variables). |
 | `/app/data`       | Persistent IP cache (empty dir, created automatically) |
 
 #### NAS (Synology, QNAP, Unraid)
@@ -116,6 +120,51 @@ Script flags like `--force` and `--quiet` can be used in both modes, e.g.:
 ```bash
 docker run --rm -v ./config.php:/app/config.php:ro stecklars/dynamic-dns-netcup-api --run-once --force
 ```
+
+#### Configuration via environment variables
+If you'd rather not mount a `config.php`, you can pass every setting as an environment variable instead — convenient when secrets come from your orchestrator (`docker run --env-file`, Docker secrets, Kubernetes ConfigMaps, etc.). On startup the entrypoint generates `config.php` from the env vars.
+
+```bash
+docker run -d --name dyndns \
+  -e CUSTOMERNR=12345 \
+  -e APIKEY=your-api-key \
+  -e APIPASSWORD=your-api-password \
+  -e DOMAINLIST="example.com: @, www; second.tld: mail" \
+  -e USE_IPV4=true \
+  -e USE_IPV6=false \
+  -e CHANGE_TTL=true \
+  -v dyndns-data:/app/data \
+  --restart unless-stopped \
+  stecklars/dynamic-dns-netcup-api
+```
+
+| Variable                       | Required | Default                       | Description                                                |
+| ------------------------------ | -------- | ----------------------------- | ---------------------------------------------------------- |
+| CUSTOMERNR                     | yes      | —                             | netcup customer number                                     |
+| APIKEY                         | yes      | —                             | netcup API key                                             |
+| APIPASSWORD                    | yes      | —                             | netcup API password                                        |
+| DOMAINLIST                     | yes      | —                             | Domain configuration (see [`config.dist.php`](https://github.com/stecklars/dynamic-dns-netcup-api/blob/master/config.dist.php) for the format) |
+| USE_IPV4                       | no       | `true`                        | Update A records                                           |
+| USE_IPV6                       | no       | `false`                       | Update AAAA records                                        |
+| CHANGE_TTL                     | no       | `false`                       | Lower TTL to 300 seconds on each run                       |
+| APIURL                         | no       | netcup REST endpoint          | Override the netcup API endpoint                           |
+| IPV4_ADDRESS_URL               | no       | `https://get-ipv4.steck.cc`   | Primary IPv4 lookup URL                                    |
+| IPV4_ADDRESS_URL_FALLBACK      | no       | `https://ipv4.seeip.org`      | Fallback IPv4 lookup URL                                   |
+| IPV6_ADDRESS_URL               | no       | `https://get-ipv6.steck.cc`   | Primary IPv6 lookup URL                                    |
+| IPV6_ADDRESS_URL_FALLBACK      | no       | `https://v6.ident.me`         | Fallback IPv6 lookup URL                                   |
+| RETRY_SLEEP                    | no       | `30`                          | Seconds to wait between retries                            |
+| JITTER_MAX                     | no       | `30`                          | Max random delay before API calls (`0` to disable)         |
+
+Booleans accept `true` / `false` / `1` / `0` / `yes` / `no` / `on` / `off` (case-insensitive). Verify your env-var configuration in one-shot mode before going into cron mode:
+
+```bash
+docker run --rm \
+  -e CUSTOMERNR=12345 -e APIKEY=... -e APIPASSWORD=... \
+  -e DOMAINLIST="example.com: @" \
+  stecklars/dynamic-dns-netcup-api --run-once
+```
+
+If a `config.php` is mounted at `/app/config.php`, it always takes precedence and these env vars are ignored.
 
 #### Viewing logs
 ```bash

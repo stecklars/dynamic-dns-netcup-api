@@ -51,6 +51,7 @@
 #   43. Full update flow — cache with IPv4+IPv6
 #   44. Full update flow — no cache file (first run)
 #   45. Full update flow — config change invalidates cache
+#   45a. Full update flow — env-mode entrypoint generates config and runs update.php end-to-end
 #   46. Docker entrypoint — startup failure exits before scheduling cron
 #   47. Docker entrypoint — startup success records heartbeat, schedules cron, and starts crond
 #   48. Docker healthcheck — mark-success writes heartbeat file
@@ -58,6 +59,15 @@
 #   50. Docker healthcheck — unhealthy when a scheduled run is overdue
 #   51. Docker healthcheck — weekday-only schedules stay healthy over the weekend
 #   52. Docker image — Dockerfile defines a HEALTHCHECK command
+#   53. Docker entrypoint — env-mode generates config.php from environment variables
+#   54. Docker entrypoint — env-mode missing required variables fails fast
+#   55. Docker entrypoint — env-mode accepts boolean variants (true/yes/1/on, false/no/0/off)
+#   56. Docker entrypoint — env-mode rejects invalid boolean and non-numeric values
+#   57. Docker entrypoint — env-mode escapes special characters in string values
+#   58. Docker entrypoint — env-mode applies optional URL/numeric overrides
+#   59. Docker entrypoint — env-mode omits unset optional values from generated config
+#   60. Docker entrypoint — env-mode mounted config.php takes precedence over env vars
+#   61. Docker entrypoint — env-mode generated config supports legacy/case-insensitive booleans
 #
 
 set -uo pipefail
@@ -354,6 +364,7 @@ assert_healthcheck_output() {
         fail "$description (expected output to contain '$expected')"
     fi
 }
+
 
 
 # ===========================================================================
@@ -1359,6 +1370,62 @@ assert_output_missing "no cache hit" "cached"
 assert_output "processes new subdomain" 'Updating DNS records for subdomain "www"'
 rm -f "$CACHE_TMP"
 
+# --- 45a. Env-mode end-to-end via entrypoint --run-once ---
+# The entrypoint generates config.php from env vars and execs update.php
+# in --run-once mode. We point everything at the mock server to verify
+# the generated config is actually consumed correctly by update.php.
+echo ""
+echo "  --- 45a. Env-mode end-to-end via entrypoint --run-once ---"
+E2E_TMP="$(mktemp -d)"
+E2E_APP="$E2E_TMP/app"
+mkdir -p "$E2E_APP/data"
+cp "$PROJECT_DIR/update.php" "$PROJECT_DIR/functions.php" "$PROJECT_DIR/healthcheck.php" "$E2E_APP/"
+e2e_output=$(
+    env \
+        APP_DIR="$E2E_APP" \
+        CUSTOMERNR="12345" \
+        APIKEY="testkey" \
+        APIPASSWORD="testpass" \
+        DOMAINLIST="example.com: @" \
+        USE_IPV4="true" \
+        USE_IPV6="false" \
+        CHANGE_TTL="false" \
+        APIURL="http://localhost:$MOCK_PORT/api" \
+        IPV4_ADDRESS_URL="http://localhost:$MOCK_PORT/ipv4" \
+        IPV4_ADDRESS_URL_FALLBACK="http://localhost:$MOCK_PORT/ipv4" \
+        IPV6_ADDRESS_URL="http://localhost:$MOCK_PORT/ipv6" \
+        IPV6_ADDRESS_URL_FALLBACK="http://localhost:$MOCK_PORT/ipv6" \
+        JITTER_MAX="0" \
+        RETRY_SLEEP="0" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" --run-once 2>&1
+) && e2e_status=$? || e2e_status=$?
+if [ "$e2e_status" -eq 0 ]; then
+    pass "env-mode end-to-end exits 0"
+else
+    fail "env-mode end-to-end exits 0 (got $e2e_status)"
+fi
+if echo "$e2e_output" | grep -qF "Loading config from environment variables"; then
+    pass "env-mode announces it loaded from environment"
+else
+    fail "env-mode announces it loaded from environment"
+fi
+if echo "$e2e_output" | grep -qF "Logged in successfully"; then
+    pass "env-mode generated config drives a successful login"
+else
+    fail "env-mode generated config drives a successful login"
+fi
+if echo "$e2e_output" | grep -qF "Logged out successfully"; then
+    pass "env-mode end-to-end completes a full update cycle"
+else
+    fail "env-mode end-to-end completes a full update cycle"
+fi
+if [ -f "$E2E_APP/config.php" ] && grep -qF "define('CUSTOMERNR', '12345');" "$E2E_APP/config.php"; then
+    pass "env-mode generated config.php is left in place for inspection"
+else
+    fail "env-mode generated config.php is left in place for inspection"
+fi
+rm -rf "$E2E_TMP"
+
 fi  # end of cURL/python3 availability check
 
 # ===========================================================================
@@ -1587,6 +1654,419 @@ if grep -qF -- 'HEALTHCHECK --interval=1m --timeout=10s --start-period=2m --retr
 else
     fail "Dockerfile defines the container healthcheck"
 fi
+
+# ===========================================================================
+# 53-61. DOCKER ENTRYPOINT — ENV-VAR CONFIG MODE
+# ===========================================================================
+#
+# These tests exercise the env-var configuration path in
+# docker-entrypoint.sh. They use mock php/crontab/crond binaries placed
+# in a temp dir and override PATH so the entrypoint never invokes the
+# real binaries — only its own shell logic and the actual generated
+# config file are validated.
+
+echo ""
+echo "=== 53-61. Docker entrypoint env-var config mode ==="
+
+# Helper: write a stub php/crontab/crond into $1 so the entrypoint can
+# proceed past the initial run, heartbeat, and crond invocation.
+make_entrypoint_mocks() {
+    local bin="$1"
+    local app="$2"
+    local heartbeat="$app/data/last_success.json"
+    cat > "$bin/php" <<EOF
+#!/bin/sh
+if [ "\$1" = "$app/healthcheck.php" ] && [ "\$2" = "--mark-success" ]; then
+    echo '{"timestamp":1}' > "$heartbeat"
+fi
+exit 0
+EOF
+    cat > "$bin/crontab" <<'EOF'
+#!/bin/sh
+cat > /dev/null
+exit 0
+EOF
+    cat > "$bin/crond" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+    chmod +x "$bin/php" "$bin/crontab" "$bin/crond"
+}
+
+# --- 53. Env-mode generates config.php from env vars ---
+echo ""
+echo "  --- 53. Env-mode generates config.php from env vars ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+env_output=$(
+    env \
+        PATH="$ENV_BIN:$PATH" \
+        APP_DIR="$ENV_APP" \
+        CRON_SCHEDULE="*/10 * * * *" \
+        CUSTOMERNR="12345" \
+        APIKEY="testkey" \
+        APIPASSWORD="testpass" \
+        DOMAINLIST="example.com: @, www" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet 2>&1
+) && env_status=$? || env_status=$?
+if [ "$env_status" -eq 0 ]; then
+    pass "env-mode entrypoint exits 0"
+else
+    fail "env-mode entrypoint exits 0 (got $env_status)"
+fi
+if [ -f "$ENV_APP/config.php" ]; then
+    pass "env-mode writes config.php"
+else
+    fail "env-mode writes config.php"
+fi
+if php -l "$ENV_APP/config.php" > /dev/null 2>&1; then
+    pass "env-mode generated config.php has valid PHP syntax"
+else
+    fail "env-mode generated config.php has valid PHP syntax"
+fi
+verify=$(php -r "require '$ENV_APP/config.php'; echo CUSTOMERNR.'|'.APIKEY.'|'.APIPASSWORD.'|'.DOMAINLIST.'|'.var_export(USE_IPV4, true).'|'.var_export(USE_IPV6, true).'|'.var_export(CHANGE_TTL, true).'|'.APIURL;" 2>/dev/null)
+expected="12345|testkey|testpass|example.com: @, www|true|false|false|https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
+if [ "$verify" = "$expected" ]; then
+    pass "env-mode generated config has expected values + defaults"
+else
+    fail "env-mode generated config has expected values + defaults (got '$verify')"
+fi
+if echo "$env_output" | grep -qF -- "Loading config from environment variables"; then
+    pass "env-mode announces env-driven config"
+else
+    fail "env-mode announces env-driven config"
+fi
+rm -rf "$ENV_TMP"
+
+# --- 54. Env-mode missing required variables fails fast ---
+echo ""
+echo "  --- 54. Env-mode missing required variables fails fast ---"
+# Each iteration unsets one required var and confirms it's reported.
+for missing_var in CUSTOMERNR APIKEY APIPASSWORD DOMAINLIST; do
+    ENV_TMP="$(mktemp -d)"
+    ENV_APP="$ENV_TMP/app"
+    ENV_BIN="$ENV_TMP/bin"
+    mkdir -p "$ENV_APP/data" "$ENV_BIN"
+    make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+    # Build the env list by removing the variable under test.
+    env_args="CUSTOMERNR=12345 APIKEY=k APIPASSWORD=p DOMAINLIST=example.com:@"
+    env_args=$(echo "$env_args" | sed -E "s/(^| )$missing_var=[^ ]*//")
+    env_output=$(
+        env -i \
+            PATH="$ENV_BIN:$PATH" \
+            APP_DIR="$ENV_APP" \
+            $env_args \
+            sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1
+    ) && env_status=$? || env_status=$?
+    if [ "$env_status" -eq 1 ]; then
+        pass "missing $missing_var exits 1"
+    else
+        fail "missing $missing_var exits 1 (got $env_status)"
+    fi
+    if echo "$env_output" | grep -qF "$missing_var" && \
+       echo "$env_output" | grep -qF "Missing required environment variable"; then
+        pass "missing $missing_var reports the variable name"
+    else
+        fail "missing $missing_var reports the variable name (output: $env_output)"
+    fi
+    if [ ! -f "$ENV_APP/config.php" ]; then
+        pass "missing $missing_var does not write a partial config.php"
+    else
+        fail "missing $missing_var does not write a partial config.php"
+    fi
+    rm -rf "$ENV_TMP"
+done
+
+# --- 55. Env-mode accepts boolean variants ---
+echo ""
+echo "  --- 55. Env-mode accepts boolean variants ---"
+# Truthy values that should produce PHP true.
+for truthy in true True TRUE 1 yes Yes YES on On ON; do
+    ENV_TMP="$(mktemp -d)"
+    ENV_APP="$ENV_TMP/app"
+    ENV_BIN="$ENV_TMP/bin"
+    mkdir -p "$ENV_APP/data" "$ENV_BIN"
+    make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+    env -i \
+        PATH="$ENV_BIN:$PATH" \
+        APP_DIR="$ENV_APP" \
+        CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+        USE_IPV4="$truthy" USE_IPV6="$truthy" CHANGE_TTL="$truthy" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+    bools=$(php -r "require '$ENV_APP/config.php'; echo var_export(USE_IPV4, true).'|'.var_export(USE_IPV6, true).'|'.var_export(CHANGE_TTL, true);" 2>/dev/null)
+    if [ "$bools" = "true|true|true" ]; then
+        pass "boolean '$truthy' maps to PHP true for all three flags"
+    else
+        fail "boolean '$truthy' maps to PHP true (got '$bools')"
+    fi
+    rm -rf "$ENV_TMP"
+done
+# Falsy values that should produce PHP false.
+for falsy in false False FALSE 0 no No NO off Off OFF; do
+    ENV_TMP="$(mktemp -d)"
+    ENV_APP="$ENV_TMP/app"
+    ENV_BIN="$ENV_TMP/bin"
+    mkdir -p "$ENV_APP/data" "$ENV_BIN"
+    make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+    env -i \
+        PATH="$ENV_BIN:$PATH" \
+        APP_DIR="$ENV_APP" \
+        CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+        USE_IPV4="$falsy" USE_IPV6="$falsy" CHANGE_TTL="$falsy" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+    bools=$(php -r "require '$ENV_APP/config.php'; echo var_export(USE_IPV4, true).'|'.var_export(USE_IPV6, true).'|'.var_export(CHANGE_TTL, true);" 2>/dev/null)
+    if [ "$bools" = "false|false|false" ]; then
+        pass "boolean '$falsy' maps to PHP false for all three flags"
+    else
+        fail "boolean '$falsy' maps to PHP false (got '$bools')"
+    fi
+    rm -rf "$ENV_TMP"
+done
+
+# --- 56. Env-mode rejects invalid boolean and non-numeric values ---
+echo ""
+echo "  --- 56. Env-mode rejects invalid values ---"
+for bad_bool in maybe yep "  " 2 truefalse; do
+    ENV_TMP="$(mktemp -d)"
+    ENV_APP="$ENV_TMP/app"
+    ENV_BIN="$ENV_TMP/bin"
+    mkdir -p "$ENV_APP/data" "$ENV_BIN"
+    make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+    env_output=$(
+        env -i \
+            PATH="$ENV_BIN:$PATH" \
+            APP_DIR="$ENV_APP" \
+            CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+            USE_IPV4="$bad_bool" \
+            sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1
+    ) && env_status=$? || env_status=$?
+    if [ "$env_status" -eq 1 ]; then
+        pass "invalid USE_IPV4='$bad_bool' exits 1"
+    else
+        fail "invalid USE_IPV4='$bad_bool' exits 1 (got $env_status)"
+    fi
+    if echo "$env_output" | grep -qF "Invalid USE_IPV4"; then
+        pass "invalid USE_IPV4='$bad_bool' reports the failing variable"
+    else
+        fail "invalid USE_IPV4='$bad_bool' reports the failing variable"
+    fi
+    rm -rf "$ENV_TMP"
+done
+# Empty USE_IPV4 should fall back to the default (true) — same convention
+# as ${VAR:-default} expansion. This is consistent with the numeric vars.
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$ENV_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    USE_IPV4="" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+default_use_ipv4=$(php -r "require '$ENV_APP/config.php'; echo var_export(USE_IPV4, true);" 2>/dev/null)
+if [ "$default_use_ipv4" = "true" ]; then
+    pass "empty USE_IPV4 falls back to the default (true)"
+else
+    fail "empty USE_IPV4 falls back to the default (got '$default_use_ipv4')"
+fi
+rm -rf "$ENV_TMP"
+for bad_num in abc 1.5 -1 "10 20" ""; do
+    ENV_TMP="$(mktemp -d)"
+    ENV_APP="$ENV_TMP/app"
+    ENV_BIN="$ENV_TMP/bin"
+    mkdir -p "$ENV_APP/data" "$ENV_BIN"
+    make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+    env_output=$(
+        env -i \
+            PATH="$ENV_BIN:$PATH" \
+            APP_DIR="$ENV_APP" \
+            CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+            RETRY_SLEEP="$bad_num" \
+            sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1
+    ) && env_status=$? || env_status=$?
+    # Empty string is treated as "unset" — should NOT fail. All other bad
+    # values must be rejected with exit 1.
+    if [ -z "$bad_num" ]; then
+        if [ "$env_status" -eq 0 ]; then
+            pass "empty RETRY_SLEEP is treated as unset (exit 0)"
+        else
+            fail "empty RETRY_SLEEP is treated as unset (got $env_status; output: $env_output)"
+        fi
+    else
+        if [ "$env_status" -eq 1 ] && echo "$env_output" | grep -qF "Invalid RETRY_SLEEP"; then
+            pass "invalid RETRY_SLEEP='$bad_num' rejected with clear error"
+        else
+            fail "invalid RETRY_SLEEP='$bad_num' rejected (status=$env_status; output: $env_output)"
+        fi
+    fi
+    rm -rf "$ENV_TMP"
+done
+
+# --- 57. Env-mode escapes special characters in string values ---
+# Single quotes and backslashes must be escaped so the generated PHP
+# parses correctly and round-trips the value byte-for-byte.
+echo ""
+echo "  --- 57. Env-mode escapes special characters ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+TRICKY_PASS="p'a\"ss\\with\$special'chars"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$ENV_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD="$TRICKY_PASS" DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+if php -l "$ENV_APP/config.php" > /dev/null 2>&1; then
+    pass "config with special chars parses as PHP"
+else
+    fail "config with special chars parses as PHP"
+fi
+recovered=$(php -r "require '$ENV_APP/config.php'; echo APIPASSWORD;" 2>/dev/null)
+if [ "$recovered" = "$TRICKY_PASS" ]; then
+    pass "special-character APIPASSWORD round-trips byte-for-byte"
+else
+    fail "special-character APIPASSWORD round-trips byte-for-byte (got '$recovered', expected '$TRICKY_PASS')"
+fi
+rm -rf "$ENV_TMP"
+
+# --- 58. Env-mode applies optional URL/numeric overrides ---
+echo ""
+echo "  --- 58. Env-mode applies optional overrides ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$ENV_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    USE_IPV6=true \
+    APIURL="https://api.example.com/dns" \
+    IPV4_ADDRESS_URL="https://ip4.example.com" \
+    IPV4_ADDRESS_URL_FALLBACK="https://ip4-fallback.example.com" \
+    IPV6_ADDRESS_URL="https://ip6.example.com" \
+    IPV6_ADDRESS_URL_FALLBACK="https://ip6-fallback.example.com" \
+    RETRY_SLEEP=15 JITTER_MAX=7 \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+overrides=$(php -r "require '$ENV_APP/config.php'; echo APIURL.'|'.IPV4_ADDRESS_URL.'|'.IPV4_ADDRESS_URL_FALLBACK.'|'.IPV6_ADDRESS_URL.'|'.IPV6_ADDRESS_URL_FALLBACK.'|'.RETRY_SLEEP.'|'.JITTER_MAX;" 2>/dev/null)
+expected="https://api.example.com/dns|https://ip4.example.com|https://ip4-fallback.example.com|https://ip6.example.com|https://ip6-fallback.example.com|15|7"
+if [ "$overrides" = "$expected" ]; then
+    pass "all optional overrides applied to generated config"
+else
+    fail "all optional overrides applied to generated config (got '$overrides')"
+fi
+# Verify numeric values are emitted as integers, not strings.
+numeric_types=$(php -r "require '$ENV_APP/config.php'; echo gettype(RETRY_SLEEP).'|'.gettype(JITTER_MAX);" 2>/dev/null)
+if [ "$numeric_types" = "integer|integer" ]; then
+    pass "numeric overrides typed as PHP integers"
+else
+    fail "numeric overrides typed as PHP integers (got '$numeric_types')"
+fi
+rm -rf "$ENV_TMP"
+
+# --- 59. Env-mode omits unset optional values from generated config ---
+# Optional defines that aren't provided should be left out so update.php
+# can apply its own defaults via the !defined() guards.
+echo ""
+echo "  --- 59. Env-mode omits unset optional values ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$ENV_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+for opt in IPV4_ADDRESS_URL IPV4_ADDRESS_URL_FALLBACK IPV6_ADDRESS_URL IPV6_ADDRESS_URL_FALLBACK RETRY_SLEEP JITTER_MAX; do
+    if grep -qF "define('$opt'" "$ENV_APP/config.php"; then
+        fail "$opt should be omitted when not provided"
+    else
+        pass "$opt omitted from generated config when not provided"
+    fi
+done
+rm -rf "$ENV_TMP"
+
+# --- 60. Env-mode mounted config.php takes precedence over env vars ---
+# Regression guard: existing users mounting their own config.php must
+# not have it overwritten when env vars are also set.
+echo ""
+echo "  --- 60. Env-mode preserves mounted config.php ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+USER_CONFIG_MARKER="<?php /* user-supplied config — must not be overwritten */"
+printf '%s\n' "$USER_CONFIG_MARKER" > "$ENV_APP/config.php"
+env_output=$(
+    env \
+        PATH="$ENV_BIN:$PATH" \
+        APP_DIR="$ENV_APP" \
+        CUSTOMERNR="should-be-ignored" \
+        APIKEY="should-be-ignored" \
+        APIPASSWORD="should-be-ignored" \
+        DOMAINLIST="should-be-ignored" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet 2>&1
+) && env_status=$? || env_status=$?
+if [ "$env_status" -eq 0 ]; then
+    pass "mounted-config entrypoint exits 0"
+else
+    fail "mounted-config entrypoint exits 0 (got $env_status)"
+fi
+if [ "$(cat "$ENV_APP/config.php")" = "$USER_CONFIG_MARKER" ]; then
+    pass "mounted config.php is preserved verbatim"
+else
+    fail "mounted config.php is preserved verbatim"
+fi
+if echo "$env_output" | grep -qF "Loading config from $ENV_APP/config.php"; then
+    pass "entrypoint announces it loaded the mounted config"
+else
+    fail "entrypoint announces it loaded the mounted config"
+fi
+if echo "$env_output" | grep -qF "Loading config from environment variables"; then
+    fail "env-mode generation should be skipped when config.php is mounted"
+else
+    pass "env-mode generation is skipped when config.php is mounted"
+fi
+rm -rf "$ENV_TMP"
+
+# --- 61. Env-mode wrapper config still sets CACHE_FILE in $DATA_DIR ---
+# The wrapper config (config.docker.php) should always default CACHE_FILE
+# to $APP_DIR/data/cache.json, regardless of which mode generated config.php.
+echo ""
+echo "  --- 61. Env-mode wrapper config sets CACHE_FILE ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$ENV_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+if [ -f "$ENV_APP/config.docker.php" ]; then
+    pass "env-mode generates config.docker.php wrapper"
+else
+    fail "env-mode generates config.docker.php wrapper"
+fi
+cache_file=$(php -r "require '$ENV_APP/config.docker.php'; echo CACHE_FILE;" 2>/dev/null)
+if [ "$cache_file" = "$ENV_APP/data/cache.json" ]; then
+    pass "wrapper sets CACHE_FILE to data dir for env-mode configs"
+else
+    fail "wrapper sets CACHE_FILE to data dir (got '$cache_file')"
+fi
+rm -rf "$ENV_TMP"
 
 # ===========================================================================
 # RESULTS

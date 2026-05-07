@@ -38,10 +38,10 @@ Run tests with `./tests/test.sh`. Requires Bash, PHP-CLI, and Python 3.
 
 ## Common tasks
 
-- **Adding a new config option:** Add `define()` in `config.dist.php` (documented), add `!defined()` default guard in `update.php`, add to `write_mock_config` in `test.sh` if it affects test behavior.
+- **Adding a new config option:** Add `define()` in `config.dist.php` (documented), add `!defined()` default guard in `update.php`, add to `write_mock_config` in `test.sh` if it affects test behavior. If the option should be settable via Docker env vars, also extend `generate_config_from_env` in `docker-entrypoint.sh` and the env-var docs in `README.md`.
 - **Adding a new API mock variant:** Add handler method in `test_mock_server.py`, add to the dispatch dict, write tests in `test.sh`.
 - **Bumping version:** Change `const VERSION` in `functions.php` line 3. Update the version check in `test.sh` (search for the old version string).
-- **Docker image:** The `Dockerfile` copies only `update.php` and `functions.php` (via `.dockerignore`). The `docker-entrypoint.sh` generates a wrapper config that includes the user's mounted `config.php` and sets `CACHE_FILE` to the persistent volume. A GitHub Actions workflow (`.github/workflows/docker-publish.yml`) automatically builds and pushes the Docker image to Docker Hub when a release is published.
+- **Docker image:** The `Dockerfile` copies only `update.php`, `functions.php`, and `healthcheck.php` (via `.dockerignore`). The `docker-entrypoint.sh` produces `config.docker.php`, a wrapper that requires the user's `config.php` and sets `CACHE_FILE` to the persistent volume. The user's `config.php` can be mounted directly OR generated from env vars (`CUSTOMERNR`, `APIKEY`, `APIPASSWORD`, `DOMAINLIST`, plus optional `USE_IPV4` / `USE_IPV6` / `CHANGE_TTL` / IP-URL / `RETRY_SLEEP` / `JITTER_MAX` / `APIURL`) — a mounted file always wins. A GitHub Actions workflow (`.github/workflows/docker-publish.yml`) automatically builds and pushes the Docker image to Docker Hub when a release is published.
 
 **Important:** After any user-facing change (new feature, new CLI option, changed behavior), update `README.md` to match. Keep the CLI options table in `README.md` identical to the help text in `functions.php`. Update the feature list if applicable.
 
