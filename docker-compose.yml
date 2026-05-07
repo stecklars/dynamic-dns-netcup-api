@@ -20,6 +20,14 @@ services:
       # - "USE_IPV4=true"
       # - "USE_IPV6=false"
       # - "CHANGE_TTL=true"
+      # Optional overrides — uncomment only what you actually want to change:
+      # - "IPV4_ADDRESS_URL=https://get-ipv4.steck.cc"
+      # - "IPV4_ADDRESS_URL_FALLBACK=https://ipv4.seeip.org"
+      # - "IPV6_ADDRESS_URL=https://get-ipv6.steck.cc"
+      # - "IPV6_ADDRESS_URL_FALLBACK=https://v6.ident.me"
+      # - "RETRY_SLEEP=30"
+      # - "JITTER_MAX=30"
+      # - "APIURL=https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON"
     restart: unless-stopped
 
 volumes:

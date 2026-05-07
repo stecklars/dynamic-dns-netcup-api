@@ -147,7 +147,7 @@ docker run -d --name dyndns \
 | USE_IPV4                       | no       | `true`                        | Update A records                                           |
 | USE_IPV6                       | no       | `false`                       | Update AAAA records                                        |
 | CHANGE_TTL                     | no       | `false`                       | Lower TTL to 300 seconds on each run                       |
-| APIURL                         | no       | netcup REST endpoint          | Override the netcup API endpoint                           |
+| APIURL                         | no       | `https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON` | Override the netcup API endpoint |
 | IPV4_ADDRESS_URL               | no       | `https://get-ipv4.steck.cc`   | Primary IPv4 lookup URL                                    |
 | IPV4_ADDRESS_URL_FALLBACK      | no       | `https://ipv4.seeip.org`      | Fallback IPv4 lookup URL                                   |
 | IPV6_ADDRESS_URL               | no       | `https://get-ipv6.steck.cc`   | Primary IPv6 lookup URL                                    |
@@ -163,6 +163,8 @@ docker run --rm \
   -e DOMAINLIST="example.com: @" \
   stecklars/dynamic-dns-netcup-api --run-once
 ```
+
+`--run-once` exercises the env-var → `config.php` conversion and a single update; it does **not** start `crond` or validate `CRON_SCHEDULE`. If `--run-once` is happy, cron mode usually is too — but the easiest way to confirm is to start the container in cron mode and watch `docker logs`.
 
 If a `config.php` is mounted at `/app/config.php`, it always takes precedence and these env vars are ignored.
 

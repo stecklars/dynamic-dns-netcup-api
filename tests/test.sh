@@ -71,6 +71,9 @@
 #   62. Docker entrypoint — wrapper config escapes APP_DIR (no PHP injection via path)
 #   63. Docker entrypoint — env-mode validation errors do not leak the offending value
 #   64. Docker compose — shipped docker-compose.yml (and env-var alternative) parses cleanly
+#   65. Docker entrypoint — TZ env var is forwarded into the cron command
+#   66. Docker entrypoint — args with embedded spaces survive the cron command
+#   67. Docker entrypoint — env-mode generated config files are mode 0600
 #
 
 set -uo pipefail
@@ -1548,7 +1551,7 @@ else
 fi
 if grep -qF -- "php $ENTRYPOINT_APP/update.php -c $ENTRYPOINT_APP/config.docker.php" "$ENTRYPOINT_CRONTAB" && \
    grep -qF -- "php $ENTRYPOINT_APP/healthcheck.php --mark-success" "$ENTRYPOINT_CRONTAB" && \
-   grep -qF -- "--quiet >> /proc/1/fd/1 2>> /proc/1/fd/2" "$ENTRYPOINT_CRONTAB"; then
+   grep -qF -- "'--quiet' >> /proc/1/fd/1 2>> /proc/1/fd/2" "$ENTRYPOINT_CRONTAB"; then
     pass "entrypoint installs expected cron command with heartbeat update"
 else
     fail "entrypoint installs expected cron command with heartbeat update"
@@ -2170,6 +2173,38 @@ for var in USE_IPV4 USE_IPV6 CHANGE_TTL RETRY_SLEEP JITTER_MAX; do
 done
 rm -rf "$ENV_TMP"
 
+# Helper: drives the entrypoint with mock binaries so we can inspect the
+# crontab text it installs and the file modes it leaves behind.
+# Sets $ENTRYPOINT_TMP, $ENTRYPOINT_APP, $ENTRYPOINT_CRONTAB,
+# $ENTRYPOINT_LOG. Caller is responsible for `rm -rf "$ENTRYPOINT_TMP"`.
+prepare_entrypoint_run() {
+    ENTRYPOINT_TMP="$(mktemp -d)"
+    ENTRYPOINT_APP="$ENTRYPOINT_TMP/app"
+    ENTRYPOINT_BIN="$ENTRYPOINT_TMP/bin"
+    ENTRYPOINT_LOG="$ENTRYPOINT_TMP/log.txt"
+    ENTRYPOINT_CRONTAB="$ENTRYPOINT_TMP/crontab.txt"
+    ENTRYPOINT_HEARTBEAT="$ENTRYPOINT_APP/data/last_success.json"
+    mkdir -p "$ENTRYPOINT_APP/data" "$ENTRYPOINT_BIN"
+    cat > "$ENTRYPOINT_BIN/php" <<EOF
+#!/bin/sh
+echo "php \$*" >> "$ENTRYPOINT_LOG"
+if [ "\$1" = "$ENTRYPOINT_APP/healthcheck.php" ] && [ "\$2" = "--mark-success" ]; then
+    echo '{"timestamp":1}' > "$ENTRYPOINT_HEARTBEAT"
+fi
+exit 0
+EOF
+    cat > "$ENTRYPOINT_BIN/crontab" <<EOF
+#!/bin/sh
+cat > "$ENTRYPOINT_CRONTAB"
+exit 0
+EOF
+    cat > "$ENTRYPOINT_BIN/crond" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+    chmod +x "$ENTRYPOINT_BIN/php" "$ENTRYPOINT_BIN/crontab" "$ENTRYPOINT_BIN/crond"
+}
+
 # --- 64. docker-compose.yml is valid YAML, including the env-var alternative ---
 # Regression guard for the issue where unquoted DOMAINLIST=... made the
 # alternative example unparseable. We test both the shipped form and the
@@ -2197,6 +2232,122 @@ else
     fi
     rm -rf "$COMPOSE_TMP"
 fi
+
+# --- 65. TZ env var is forwarded into the cron command ---
+# Busybox crond doesn't propagate the parent shell's env to scheduled
+# jobs, so without explicit forwarding TZ silently reverts to UTC for
+# both update.php's log timestamps and the heartbeat JSON.
+echo ""
+echo "  --- 65. Cron command forwards TZ ---"
+prepare_entrypoint_run
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    CRON_SCHEDULE="*/2 * * * *" \
+    TZ="Europe/Berlin" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+if grep -qF -- "TZ='Europe/Berlin' php $ENTRYPOINT_APP/update.php" "$ENTRYPOINT_CRONTAB"; then
+    pass "TZ is prefixed before the cron-fired update.php"
+else
+    fail "TZ is prefixed before the cron-fired update.php (cron line: $(cat "$ENTRYPOINT_CRONTAB"))"
+fi
+if grep -qF -- "TZ='Europe/Berlin' php $ENTRYPOINT_APP/healthcheck.php --mark-success" "$ENTRYPOINT_CRONTAB"; then
+    pass "TZ is prefixed before the cron-fired heartbeat write"
+else
+    fail "TZ is prefixed before the cron-fired heartbeat write"
+fi
+rm -rf "$ENTRYPOINT_TMP"
+
+# Without TZ, no TZ= prefix should appear (avoid forwarding an empty TZ
+# which would mean "unknown timezone" inside PHP).
+prepare_entrypoint_run
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    CRON_SCHEDULE="*/2 * * * *" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+if grep -qF "TZ=" "$ENTRYPOINT_CRONTAB"; then
+    fail "no TZ env should mean no TZ= prefix in cron line"
+else
+    pass "no TZ env means no TZ= prefix in cron line"
+fi
+rm -rf "$ENTRYPOINT_TMP"
+
+# --- 66. Args with embedded spaces survive the cron command ---
+# Regression guard for the $ARGS = "$ARGS $arg" word-splitting bug. A
+# multi-word arg used to flatten and re-split on whitespace, losing
+# argument boundaries.
+echo ""
+echo "  --- 66. Cron command preserves multi-word args ---"
+prepare_entrypoint_run
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --note "hello world" --quiet > /dev/null 2>&1
+if grep -qF -- "'--note' 'hello world' '--quiet'" "$ENTRYPOINT_CRONTAB"; then
+    pass "multi-word arg stays single-quoted in the cron command"
+else
+    fail "multi-word arg stays single-quoted (cron line: $(cat "$ENTRYPOINT_CRONTAB"))"
+fi
+# Single-quote in arg should be escaped via the standard '\'' trick so
+# the cron line round-trips through /bin/sh -c without re-splitting.
+prepare_entrypoint_run
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" "--note=O'Brien" > /dev/null 2>&1
+if grep -qF -- "'--note=O'\\''Brien'" "$ENTRYPOINT_CRONTAB"; then
+    pass "single quote inside arg is escaped via '\\'' for the cron command"
+else
+    fail "single quote inside arg is escaped (cron line: $(cat "$ENTRYPOINT_CRONTAB"))"
+fi
+rm -rf "$ENTRYPOINT_TMP"
+
+# --- 67. Env-mode generated config files are mode 0600 ---
+# Regression guard for the credentials-at-0644 finding: anyone later
+# adding a non-root USER directive should inherit the secure default.
+echo ""
+echo "  --- 67. Env-mode config files restricted to 0600 ---"
+prepare_entrypoint_run
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+config_mode=$(stat -c '%a' "$ENTRYPOINT_APP/config.php" 2>/dev/null)
+docker_mode=$(stat -c '%a' "$ENTRYPOINT_APP/config.docker.php" 2>/dev/null)
+if [ "$config_mode" = "600" ]; then
+    pass "generated config.php is mode 0600"
+else
+    fail "generated config.php is mode 0600 (got '$config_mode')"
+fi
+if [ "$docker_mode" = "600" ]; then
+    pass "generated config.docker.php is mode 0600"
+else
+    fail "generated config.docker.php is mode 0600 (got '$docker_mode')"
+fi
+rm -rf "$ENTRYPOINT_TMP"
+
+# Mounted config.php should NOT have its permissions changed by the
+# entrypoint — that's the user's file, not ours.
+prepare_entrypoint_run
+echo "<?php" > "$ENTRYPOINT_APP/config.php"
+chmod 0644 "$ENTRYPOINT_APP/config.php"
+env -i \
+    PATH="$ENTRYPOINT_BIN:$PATH" \
+    APP_DIR="$ENTRYPOINT_APP" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+mounted_mode=$(stat -c '%a' "$ENTRYPOINT_APP/config.php" 2>/dev/null)
+if [ "$mounted_mode" = "644" ]; then
+    pass "mounted config.php's mode is left untouched"
+else
+    fail "mounted config.php's mode is left untouched (got '$mounted_mode')"
+fi
+rm -rf "$ENTRYPOINT_TMP"
 
 # ===========================================================================
 # RESULTS

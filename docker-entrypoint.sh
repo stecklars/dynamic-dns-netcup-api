@@ -48,6 +48,20 @@ validate_uint() {
     return 0
 }
 
+# Single-quote a value for safe inclusion in a /bin/sh command line.
+# Inner single quotes are replaced with '\'' so the result, when re-parsed
+# by sh, reproduces the input byte-for-byte.
+shell_quote() {
+    case "$1" in
+        *\'*)
+            printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+            ;;
+        *)
+            printf "'%s'" "$1"
+            ;;
+    esac
+}
+
 # Generate $CONFIG_PATH from environment variables. Required: CUSTOMERNR,
 # APIKEY, APIPASSWORD, DOMAINLIST. Optional: USE_IPV4, USE_IPV6, CHANGE_TTL
 # (booleans), IPV4_ADDRESS_URL[_FALLBACK], IPV6_ADDRESS_URL[_FALLBACK],
@@ -122,6 +136,12 @@ generate_config_from_env() {
         fi
     } > "$CONFIG_PATH"
 
+    # The generated file holds API credentials in plaintext. Restrict it
+    # to the container's primary user even though the default Dockerfile
+    # runs as root — anyone adding a USER directive later inherits the
+    # secure default.
+    chmod 600 "$CONFIG_PATH"
+
     echo "Loading config from environment variables (wrote $CONFIG_PATH)."
 }
 
@@ -146,23 +166,27 @@ if (!defined('CACHE_FILE')) {
     define('CACHE_FILE', '$ESC_DATA_DIR/cache.json');
 }
 CONFIGEOF
+chmod 600 "$DOCKER_CONFIG_PATH"
 
-# Check for --run-once flag and remove it from the argument list.
-# Remaining arguments (e.g., --quiet, --force) are passed to update.php
-# in both one-shot and cron mode.
+# Strip --run-once from the positional params using rotate-and-filter so
+# the remaining "$@" preserves argument boundaries (a flag value with a
+# space or a single quote survives intact).
 RUN_ONCE=false
-ARGS=""
-for arg in "$@"; do
-    if [ "$arg" = "--run-once" ]; then
+remaining=$#
+while [ "$remaining" -gt 0 ]; do
+    if [ "$1" = "--run-once" ]; then
         RUN_ONCE=true
     else
-        ARGS="$ARGS $arg"
+        set -- "$@" "$1"
     fi
+    shift
+    remaining=$((remaining - 1))
 done
 
-# One-shot mode: run once and exit.
+# One-shot mode: run once and exit. Pass argv through quoted so shell
+# word-splitting can't merge or split the user's flags.
 if [ "$RUN_ONCE" = "true" ]; then
-    exec php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS
+    exec php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" "$@"
 fi
 
 # Cron mode (default)
@@ -171,16 +195,32 @@ CRON_SCHEDULE="${CRON_SCHEDULE:-*/5 * * * *}"
 echo "Starting dynamic DNS client for netcup (cron: $CRON_SCHEDULE)"
 echo "Press Ctrl+C or stop the container to exit."
 
-# Run once immediately so the user gets feedback on startup.
-if ! php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" $ARGS || \
+# Run once immediately so the user gets feedback on startup. Args go
+# through quoted; the entrypoint's own env (incl. TZ) is inherited.
+if ! php "$APP_DIR/update.php" -c "$DOCKER_CONFIG_PATH" "$@" || \
    ! DATA_DIR="$DATA_DIR" php "$HEALTHCHECK_PATH" --mark-success; then
     echo "Initial run failed. Exiting."
     exit 1
 fi
 
+# Build a single-quoted, sh-safe form of the remaining args for the cron
+# command line (which is re-parsed by /bin/sh when crond fires it).
+ARGS_BAKED=""
+for arg in "$@"; do
+    ARGS_BAKED="$ARGS_BAKED $(shell_quote "$arg")"
+done
+
+# Busybox crond does not propagate the entrypoint shell's env to scheduled
+# jobs, so TZ would silently revert to UTC for log/heartbeat timestamps.
+# Forward it inline if the operator set it.
+TZ_PREFIX=""
+if [ -n "${TZ:-}" ]; then
+    TZ_PREFIX="TZ=$(shell_quote "$TZ") "
+fi
+
 # Set up crontab. Output is redirected to Docker's stdout/stderr
 # so that 'docker logs' shows the script's output.
-echo "$CRON_SCHEDULE php $APP_DIR/update.php -c $DOCKER_CONFIG_PATH $ARGS >> /proc/1/fd/1 2>> /proc/1/fd/2 && DATA_DIR=$DATA_DIR php $HEALTHCHECK_PATH --mark-success >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
+echo "$CRON_SCHEDULE ${TZ_PREFIX}php $APP_DIR/update.php -c $DOCKER_CONFIG_PATH$ARGS_BAKED >> /proc/1/fd/1 2>> /proc/1/fd/2 && DATA_DIR=$DATA_DIR ${TZ_PREFIX}php $HEALTHCHECK_PATH --mark-success >> /proc/1/fd/1 2>> /proc/1/fd/2" | crontab -
 
 # Start crond in the foreground (PID 1).
 exec crond -f -l 2
