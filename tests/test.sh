@@ -393,7 +393,7 @@ echo "=== 2. CLI options ==="
 
 # --version / -v should print the version string and exit cleanly.
 assert_exit_code "--version exits 0" 0 php "$PROJECT_DIR/update.php" --version
-assert_output_contains "--version shows version number" "6.1" php "$PROJECT_DIR/update.php" --version
+assert_output_contains "--version shows version number" "6.2" php "$PROJECT_DIR/update.php" --version
 assert_exit_code "-v exits 0" 0 php "$PROJECT_DIR/update.php" -v
 
 # --help / -h should print usage information and exit cleanly.
