@@ -10,6 +10,6 @@ RUN chmod +x /app/docker-entrypoint.sh && \
 
 WORKDIR /app
 
-HEALTHCHECK --interval=1m --timeout=10s --start-period=2m --retries=3 CMD ["php", "/app/healthcheck.php"]
+HEALTHCHECK --interval=1m --timeout=10s --start-period=5m --retries=3 CMD ["php", "/app/healthcheck.php"]
 
 ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]

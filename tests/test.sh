@@ -1734,7 +1734,7 @@ rm -rf "$HEALTHCHECK_TMP"
 # --- 52. Dockerfile defines the image healthcheck ---
 echo ""
 echo "  --- 52. Dockerfile healthcheck ---"
-if grep -qF -- 'HEALTHCHECK --interval=1m --timeout=10s --start-period=2m --retries=3 CMD ["php", "/app/healthcheck.php"]' "$PROJECT_DIR/Dockerfile"; then
+if grep -qF -- 'HEALTHCHECK --interval=1m --timeout=10s --start-period=5m --retries=3 CMD ["php", "/app/healthcheck.php"]' "$PROJECT_DIR/Dockerfile"; then
     pass "Dockerfile defines the container healthcheck"
 else
     fail "Dockerfile defines the container healthcheck"
