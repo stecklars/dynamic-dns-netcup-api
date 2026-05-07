@@ -427,6 +427,13 @@ function login($customernr, $apikey, $apipassword)
     $result = sendRequest($request);
 
     if ($result['status'] === SUCCESS) {
+        if (!isset($result['responsedata']['apisessionid'])
+            || !is_string($result['responsedata']['apisessionid'])
+            || $result['responsedata']['apisessionid'] === ''
+        ) {
+            outputStderr("Login response is malformed: missing or invalid apisessionid. Exiting.");
+            return false;
+        }
         global $runtimeApiSessionId;
         $runtimeApiSessionId = $result['responsedata']['apisessionid'];
         return $runtimeApiSessionId;
@@ -490,6 +497,10 @@ function infoDnsZone($domainname, $customernr, $apikey, $apisessionid)
     $result = sendRequest($request);
 
     if ($result['status'] === SUCCESS) {
+        if (!isset($result['responsedata']['ttl'])) {
+            outputStderr(sprintf('infoDnsZone response for "%s" is malformed: missing TTL. Exiting.', $domainname));
+            return false;
+        }
         return $result;
     }
 
@@ -519,6 +530,10 @@ function infoDnsRecords($domainname, $customernr, $apikey, $apisessionid)
     $result = sendRequest($request);
 
     if ($result['status'] === SUCCESS) {
+        if (!isset($result['responsedata']['dnsrecords']) || !is_array($result['responsedata']['dnsrecords'])) {
+            outputStderr(sprintf('infoDnsRecords response for "%s" is malformed: missing or invalid records list. Exiting.', $domainname));
+            return false;
+        }
         return $result;
     }
 

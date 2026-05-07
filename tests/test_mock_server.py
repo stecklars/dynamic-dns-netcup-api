@@ -111,6 +111,7 @@ class MockHandler(BaseHTTPRequestHandler):
             "/api-session-refresh": self._variant_session_refresh,
             "/api-invalid-json":    self._variant_invalid_json,
             "/api-invalid-payload": self._variant_invalid_payload,
+            "/api-malformed-post-login": self._variant_malformed_post_login,
             "/api-dup-aaaa":        self._variant_dup_aaaa,
             "/api-ttl-update-fail": self._variant_ttl_update_fail,
             "/api-records-fail":    self._variant_records_fail,
@@ -478,6 +479,23 @@ class MockHandler(BaseHTTPRequestHandler):
             "status": "success",
             "shortmessage": "Incomplete payload",
         })
+
+    def _variant_malformed_post_login(self, action, request):
+        """Login succeeds, but subsequent actions return a "success" envelope
+        with no responsedata. Verifies that the action helpers validate the
+        response shape instead of dereferencing missing fields and emitting
+        PHP warnings on null array access."""
+        if action == "login":
+            self._success_login()
+        elif action == "logout":
+            self._success_logout()
+        else:
+            self._respond_json(200, {
+                "status": "success",
+                "statuscode": 2000,
+                "shortmessage": "OK",
+                "longmessage": "OK",
+            })
 
     def _variant_dup_aaaa(self, action, request):
         """Returns normal A records but duplicate AAAA records for hostname '@'.

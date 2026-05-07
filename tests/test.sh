@@ -25,6 +25,7 @@
 #   19. Full update flow — API login failure
 #   19a. Full update flow — invalid JSON from API fails cleanly
 #   19b. Full update flow — malformed JSON payload fails cleanly
+#   19c. Full update flow — login OK, infoDnsZone returns success without responsedata
 #   20. Full update flow — garbage IP from primary, fallback succeeds
 #   21. Full update flow — manually provided IPv6
 #   22. Full update flow — IPv6 changed (AAAA update)
@@ -876,6 +877,20 @@ run_update
 assert_run_exit "exits 1 on invalid payload" 1
 assert_output "reports invalid payload as invalid API response" "invalid API response"
 assert_output_missing "does not leak PHP warnings on invalid payload" "PHP Warning"
+
+# A success envelope without responsedata used to slip past
+# normalizeApiResponse and then trigger PHP warnings on
+# $result['responsedata'][...] dereferences. The action helpers now
+# validate the expected nested fields explicitly.
+echo ""
+echo "  --- 19c. Login OK but infoDnsZone returns success without responsedata ---"
+write_mock_config /api-malformed-post-login
+run_update
+assert_run_exit "exits 1 on missing responsedata" 1
+assert_output "logs in successfully before failing" "Logged in successfully"
+assert_output "reports the malformed infoDnsZone response" "infoDnsZone response"
+assert_output "names the missing field" "missing TTL"
+assert_output_missing "does not leak PHP warnings on missing responsedata" "PHP Warning"
 
 # --- 20. Garbage IP from primary, fallback succeeds ---
 # The primary IP URL returns garbage text. The script retries (with
