@@ -8,16 +8,18 @@ services:
       - ./config.php:/app/config.php:ro
       - dyndns-data:/app/data
     environment:
-      - CRON_SCHEDULE=*/5 * * * *
-      # - TZ=Europe/Berlin
+      - "CRON_SCHEDULE=*/5 * * * *"
+      # - "TZ=Europe/Berlin"
       # --- Alternative: configure via environment variables ---
-      # - CUSTOMERNR=12345
-      # - APIKEY=your-api-key
-      # - APIPASSWORD=your-api-password
-      # - DOMAINLIST=example.com: @, www
-      # - USE_IPV4=true
-      # - USE_IPV6=false
-      # - CHANGE_TTL=true
+      # Quote each line — values with `:`, `*`, or `@` will otherwise
+      # confuse the YAML parser.
+      # - "CUSTOMERNR=12345"
+      # - "APIKEY=your-api-key"
+      # - "APIPASSWORD=your-api-password"
+      # - "DOMAINLIST=example.com: @, www"
+      # - "USE_IPV4=true"
+      # - "USE_IPV6=false"
+      # - "CHANGE_TTL=true"
     restart: unless-stopped
 
 volumes:

@@ -19,8 +19,10 @@ escape_php_single() {
 # Convert an env var value to a PHP boolean literal ("true" or "false").
 # Accepts true/false/1/0/yes/no/on/off, case-insensitive. Returns 1 if
 # the value is unrecognised so the caller can produce a contextual error.
+# LC_ALL=C pins tr to ASCII so non-default locales (e.g. tr_TR) don't
+# mis-fold "I" / "i".
 env_to_php_bool() {
-    case "$(printf '%s' "$1" | tr 'A-Z' 'a-z')" in
+    case "$(printf '%s' "$1" | LC_ALL=C tr 'A-Z' 'a-z')" in
         true|1|yes|on)
             echo "true"
             ;;
@@ -33,9 +35,17 @@ env_to_php_bool() {
     esac
 }
 
-# Validate a non-negative integer env var value. Returns 1 on failure.
+# Validate a non-negative decimal integer. POSIX case glob rejects empty
+# input, leading zeros (so values aren't silently parsed as PHP octal),
+# and any character that isn't a digit — including newlines, which would
+# otherwise let an attacker inject PHP into the unquoted emission below.
 validate_uint() {
-    printf '%s' "$1" | grep -Eq '^[0-9]+$'
+    case "$1" in
+        '' | 0?* | *[!0-9]*)
+            return 1
+            ;;
+    esac
+    return 0
 }
 
 # Generate $CONFIG_PATH from environment variables. Required: CUSTOMERNR,
@@ -54,25 +64,28 @@ generate_config_from_env() {
         exit 1
     fi
 
+    # Error messages don't echo the offending value: env vars sometimes
+    # hold credentials that get pasted into the wrong slot, and we don't
+    # want them landing in `docker logs`.
     if ! use_ipv4_php=$(env_to_php_bool "${USE_IPV4:-true}"); then
-        echo "Invalid USE_IPV4 value '${USE_IPV4}'. Expected true/false/1/0/yes/no/on/off." >&2
+        echo "Invalid USE_IPV4 value. Expected true/false/1/0/yes/no/on/off." >&2
         exit 1
     fi
     if ! use_ipv6_php=$(env_to_php_bool "${USE_IPV6:-false}"); then
-        echo "Invalid USE_IPV6 value '${USE_IPV6}'. Expected true/false/1/0/yes/no/on/off." >&2
+        echo "Invalid USE_IPV6 value. Expected true/false/1/0/yes/no/on/off." >&2
         exit 1
     fi
     if ! change_ttl_php=$(env_to_php_bool "${CHANGE_TTL:-false}"); then
-        echo "Invalid CHANGE_TTL value '${CHANGE_TTL}'. Expected true/false/1/0/yes/no/on/off." >&2
+        echo "Invalid CHANGE_TTL value. Expected true/false/1/0/yes/no/on/off." >&2
         exit 1
     fi
 
     if [ -n "${RETRY_SLEEP:-}" ] && ! validate_uint "$RETRY_SLEEP"; then
-        echo "Invalid RETRY_SLEEP value '${RETRY_SLEEP}'. Expected a non-negative integer." >&2
+        echo "Invalid RETRY_SLEEP value. Expected a non-negative decimal integer (no leading zeros)." >&2
         exit 1
     fi
     if [ -n "${JITTER_MAX:-}" ] && ! validate_uint "$JITTER_MAX"; then
-        echo "Invalid JITTER_MAX value '${JITTER_MAX}'. Expected a non-negative integer." >&2
+        echo "Invalid JITTER_MAX value. Expected a non-negative decimal integer (no leading zeros)." >&2
         exit 1
     fi
 
@@ -121,11 +134,16 @@ fi
 
 # Generate a wrapper config that includes the user's config.php and sets
 # Docker-specific defaults (cache file path inside the persistent volume).
+# Paths are routed through escape_php_single because $APP_DIR is
+# user-controlled (env var) — a bare single quote in there would otherwise
+# break out of the surrounding PHP single-quoted string.
+ESC_CONFIG_PATH=$(escape_php_single "$CONFIG_PATH")
+ESC_DATA_DIR=$(escape_php_single "$DATA_DIR")
 cat > "$DOCKER_CONFIG_PATH" <<CONFIGEOF
 <?php
-require '$CONFIG_PATH';
+require '$ESC_CONFIG_PATH';
 if (!defined('CACHE_FILE')) {
-    define('CACHE_FILE', '$DATA_DIR/cache.json');
+    define('CACHE_FILE', '$ESC_DATA_DIR/cache.json');
 }
 CONFIGEOF
 

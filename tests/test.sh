@@ -68,6 +68,9 @@
 #   59. Docker entrypoint — env-mode omits unset optional values from generated config
 #   60. Docker entrypoint — env-mode mounted config.php takes precedence over env vars
 #   61. Docker entrypoint — env-mode generated config supports legacy/case-insensitive booleans
+#   62. Docker entrypoint — wrapper config escapes APP_DIR (no PHP injection via path)
+#   63. Docker entrypoint — env-mode validation errors do not leak the offending value
+#   64. Docker compose — shipped docker-compose.yml (and env-var alternative) parses cleanly
 #
 
 set -uo pipefail
@@ -1875,7 +1878,7 @@ else
     fail "empty USE_IPV4 falls back to the default (got '$default_use_ipv4')"
 fi
 rm -rf "$ENV_TMP"
-for bad_num in abc 1.5 -1 "10 20" ""; do
+for bad_num in abc 1.5 -1 "10 20" "" 099 01 +5; do
     ENV_TMP="$(mktemp -d)"
     ENV_APP="$ENV_TMP/app"
     ENV_BIN="$ENV_TMP/bin"
@@ -1906,6 +1909,35 @@ for bad_num in abc 1.5 -1 "10 20" ""; do
     fi
     rm -rf "$ENV_TMP"
 done
+# Multi-line input is a security regression: a permissive validator could
+# accept a value whose first/last lines look numeric and inline arbitrary
+# PHP between them. Tested separately because shell `for` loops don't
+# iterate values containing newlines cleanly.
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+ML_PAYLOAD=$(printf '1\n);define("PWNED",true);//\n0')
+env_output=$(
+    env -i \
+        PATH="$ENV_BIN:$PATH" \
+        APP_DIR="$ENV_APP" \
+        CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+        RETRY_SLEEP="$ML_PAYLOAD" \
+        sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1
+) && env_status=$? || env_status=$?
+if [ "$env_status" -eq 1 ] && echo "$env_output" | grep -qF "Invalid RETRY_SLEEP"; then
+    pass "multi-line RETRY_SLEEP rejected (no PHP injection)"
+else
+    fail "multi-line RETRY_SLEEP rejected (status=$env_status; output: $env_output)"
+fi
+if [ ! -f "$ENV_APP/config.php" ]; then
+    pass "rejected multi-line RETRY_SLEEP did not write config.php"
+else
+    fail "rejected multi-line RETRY_SLEEP did not write config.php"
+fi
+rm -rf "$ENV_TMP"
 
 # --- 57. Env-mode escapes special characters in string values ---
 # Single quotes and backslashes must be escaped so the generated PHP
@@ -2067,6 +2099,104 @@ else
     fail "wrapper sets CACHE_FILE to data dir (got '$cache_file')"
 fi
 rm -rf "$ENV_TMP"
+
+# --- 62. Env-mode wrapper escapes APP_DIR before interpolating into PHP ---
+# Regression guard for the "$APP_DIR contains a single quote" RCE: the
+# wrapper config must inline $CONFIG_PATH and $DATA_DIR through
+# escape_php_single, otherwise a malicious APP_DIR breaks out of the PHP
+# string and runs arbitrary code on every config load.
+echo ""
+echo "  --- 62. Env-mode wrapper escapes APP_DIR ---"
+ENV_TMP="$(mktemp -d)"
+EVIL_APP="$ENV_TMP/x'.system('touch $ENV_TMP/PWNED').'"
+mkdir -p "$EVIL_APP/data"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$EVIL_APP"
+env -i \
+    PATH="$ENV_BIN:$PATH" \
+    APP_DIR="$EVIL_APP" \
+    CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+    sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
+if php -l "$EVIL_APP/config.docker.php" > /dev/null 2>&1; then
+    pass "wrapper with hostile APP_DIR has valid syntax"
+else
+    fail "wrapper with hostile APP_DIR has valid syntax"
+fi
+# Loading the wrapper must NOT execute the injected system() call. The
+# require itself will fail (file is missing inside the literal path), but
+# that's expected — what matters is no side effect ran.
+php -d error_reporting=0 -r 'try { require $argv[1]; } catch (\Throwable $e) { /* ignore */ }' "$EVIL_APP/config.docker.php" 2>/dev/null || true
+if [ ! -e "$ENV_TMP/PWNED" ]; then
+    pass "loading wrapper with hostile APP_DIR did not execute injected payload"
+else
+    fail "loading wrapper with hostile APP_DIR executed the injected payload"
+fi
+# CACHE_FILE should be the literal hostile path, proving the value flowed
+# through as a string instead of being interpreted as PHP.
+cache_file=$(php -r 'require $argv[1]; echo CACHE_FILE;' "$EVIL_APP/config.docker.php" 2>/dev/null || true)
+if [ "$cache_file" = "$EVIL_APP/data/cache.json" ]; then
+    pass "hostile APP_DIR survives as a literal CACHE_FILE path"
+else
+    fail "hostile APP_DIR survives as a literal CACHE_FILE path (got '$cache_file')"
+fi
+rm -rf "$ENV_TMP"
+
+# --- 63. Env-mode error messages do not echo offending values ---
+# Misplaced credentials (e.g. APIPASSWORD pasted into USE_IPV4 by mistake)
+# must not land in `docker logs` via the validation error message.
+echo ""
+echo "  --- 63. Env-mode error messages redact values ---"
+ENV_TMP="$(mktemp -d)"
+ENV_APP="$ENV_TMP/app"
+ENV_BIN="$ENV_TMP/bin"
+mkdir -p "$ENV_APP/data" "$ENV_BIN"
+make_entrypoint_mocks "$ENV_BIN" "$ENV_APP"
+SECRET_TOKEN="hunter2-do-not-leak-$(date +%s%N)"
+for var in USE_IPV4 USE_IPV6 CHANGE_TTL RETRY_SLEEP JITTER_MAX; do
+    env_output=$(
+        env -i \
+            PATH="$ENV_BIN:$PATH" \
+            APP_DIR="$ENV_APP" \
+            CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
+            "$var=$SECRET_TOKEN" \
+            sh "$PROJECT_DIR/docker-entrypoint.sh" 2>&1
+    ) && env_status=$? || env_status=$?
+    if [ "$env_status" -eq 1 ] && ! echo "$env_output" | grep -qF "$SECRET_TOKEN"; then
+        pass "$var validation error does not echo the offending value"
+    else
+        fail "$var validation error leaked the value (status=$env_status; output=$env_output)"
+    fi
+done
+rm -rf "$ENV_TMP"
+
+# --- 64. docker-compose.yml is valid YAML, including the env-var alternative ---
+# Regression guard for the issue where unquoted DOMAINLIST=... made the
+# alternative example unparseable. We test both the shipped form and the
+# form with all alternative env vars uncommented.
+echo ""
+echo "  --- 64. docker-compose.yml parses cleanly ---"
+if ! command -v docker &>/dev/null || ! docker compose version >/dev/null 2>&1; then
+    skip "docker compose not available"
+else
+    if docker compose -f "$PROJECT_DIR/docker-compose.yml" config > /dev/null 2>&1; then
+        pass "shipped docker-compose.yml parses"
+    else
+        fail "shipped docker-compose.yml parses"
+    fi
+    # Same file with the env-var alternative uncommented (and the config.php
+    # bind-mount removed, since the user is opting into env mode).
+    COMPOSE_TMP="$(mktemp -d)"
+    sed -e 's/^      # - /      - /' \
+        -e '/- "\.\/config\.php/d' \
+        "$PROJECT_DIR/docker-compose.yml" > "$COMPOSE_TMP/docker-compose.yml"
+    if docker compose -f "$COMPOSE_TMP/docker-compose.yml" config > /dev/null 2>&1; then
+        pass "docker-compose.yml with env-var alternative uncommented parses"
+    else
+        fail "docker-compose.yml with env-var alternative uncommented parses"
+    fi
+    rm -rf "$COMPOSE_TMP"
+fi
 
 # ===========================================================================
 # RESULTS
