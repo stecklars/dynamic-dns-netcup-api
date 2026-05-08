@@ -1,6 +1,6 @@
 FROM php:8-cli-alpine
 
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini tzdata
 
 COPY update.php functions.php healthcheck.php /app/
 COPY docker-entrypoint.sh /app/

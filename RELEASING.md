@@ -41,6 +41,20 @@ docker run --rm \
 
 For each: confirm the run logs `Logged in successfully`, the expected `IPvN address has changed` or `hasn't changed`, `Logged out successfully`, and **no `PHP Warning` or `PHP Fatal` lines**. Then check the netcup CCP and verify the record actually has the IP the script reported.
 
+Also run a short cron-mode start-up against the same `TZ` to catch a class of bug the suite cannot — host PHP `date.timezone` pinning means the structural test can only check that the Dockerfile installs `tzdata`, not that the runtime actually honors `TZ`:
+
+```bash
+docker run -d --rm --name dyndns-tz-check \
+  -v ./config.test.php:/app/config.php:ro,z \
+  -e TZ=Europe/Berlin \
+  dyndns:rc-$(git rev-parse --short HEAD)
+sleep 3
+docker logs dyndns-tz-check | head -5
+docker stop dyndns-tz-check
+```
+
+The startup `[YYYY/MM/DD HH:MM:SS ±HHMM]` line should show your `TZ`'s offset (e.g. `+0200` for Europe/Berlin in summer), not `+0000`. If it shows `+0000`, the image is missing `tzdata` or `date.timezone` is pinned in the container's php.ini.
+
 ## 3. Tag and push
 
 ```bash

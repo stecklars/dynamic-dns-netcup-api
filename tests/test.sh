@@ -62,6 +62,7 @@
 #   51a. Docker healthcheck — cron "M/N" shorthand expands to "M-MAX/N" (Vixie/busybox semantics)
 #   51b. Docker healthcheck — cron alphabetic day-of-week aliases (MON-FRI) parse correctly
 #   52. Docker image — Dockerfile defines a HEALTHCHECK command
+#   52a. Docker image — Dockerfile installs tzdata so TZ env var is honored at runtime
 #   53. Docker entrypoint — env-mode generates config.php from environment variables
 #   54. Docker entrypoint — env-mode missing required variables fails fast
 #   55. Docker entrypoint — env-mode accepts boolean variants (true/yes/1/on, false/no/0/off)
@@ -75,6 +76,7 @@
 #   63. Docker entrypoint — env-mode validation errors do not leak the offending value
 #   64. Docker compose — shipped docker-compose.yml (and env-var alternative) parses cleanly
 #   65. Docker entrypoint — TZ env var is forwarded into the cron command
+#   65a. PHP runtime — date() honors the TZ env var (catches missing tzdata in the image)
 #   66. Docker entrypoint — args with embedded spaces survive the cron command
 #   67. Docker entrypoint — env-mode generated config files are mode 0600
 #
@@ -1740,6 +1742,20 @@ else
     fail "Dockerfile defines the container healthcheck"
 fi
 
+# --- 52a. Dockerfile installs tzdata for TZ support ---
+# Alpine images do not ship the tzdata package by default. Without it,
+# even a correct TZ env var falls back to UTC in PHP date() because the
+# kernel/glibc-equivalent has no zone definitions to resolve against.
+# A grep against the Dockerfile is enough; we don't need to build the
+# image just to verify a packaging line.
+echo ""
+echo "  --- 52a. Dockerfile installs tzdata ---"
+if grep -qE 'apk add[^&|]*tzdata' "$PROJECT_DIR/Dockerfile"; then
+    pass "Dockerfile installs tzdata so TZ env var resolves at runtime"
+else
+    fail "Dockerfile installs tzdata so TZ env var resolves at runtime"
+fi
+
 # ===========================================================================
 # 53-61. DOCKER ENTRYPOINT — ENV-VAR CONFIG MODE
 # ===========================================================================
@@ -2353,6 +2369,35 @@ else
     pass "no TZ env means no TZ= prefix in cron line"
 fi
 rm -rf "$ENTRYPOINT_TMP"
+
+# --- 65a. PHP date() honors the TZ env var ---
+# Test 65 only verifies that the cron line carries TZ='…'. The other half
+# of the chain — that PHP itself respects the value when date() is called
+# — was silently broken in v6.0–v6.2 because the alpine base image
+# doesn't ship tzdata. We can't run the container here, but we can use
+# the host PHP as a proxy: if host PHP honors TZ, container PHP will too
+# once tzdata is in the image (verified by test 52a).
+#
+# Caveat: PHP's date.timezone ini setting takes precedence over TZ. On
+# hosts that pin it (e.g. some openSUSE / Debian /etc/php/.../php.ini
+# defaults), this test cannot tell whether TZ-handling itself works, so
+# we skip cleanly rather than report a false negative. The container is
+# unaffected because php:8-cli-alpine ships php.ini-production, which
+# leaves date.timezone unset.
+echo ""
+echo "  --- 65a. PHP date() honors TZ env var ---"
+host_tz_ini=$(php -r 'echo ini_get("date.timezone");' 2>/dev/null)
+if [ -n "$host_tz_ini" ]; then
+    skip "host php.ini pins date.timezone='$host_tz_ini' which overrides TZ env; cannot verify TZ-handling on this host (the container is unaffected — see test 52a + Alpine's php.ini-production)"
+else
+    ts_berlin=$(TZ=Europe/Berlin php -r 'echo date("O");' 2>/dev/null)
+    ts_utc=$(TZ=UTC php -r 'echo date("O");' 2>/dev/null)
+    if [ -n "$ts_berlin" ] && [ -n "$ts_utc" ] && [ "$ts_berlin" != "$ts_utc" ]; then
+        pass "PHP date() respects TZ ('$ts_berlin' for Europe/Berlin vs '$ts_utc' for UTC)"
+    else
+        fail "PHP date() respects TZ (Berlin='$ts_berlin', UTC='$ts_utc')"
+    fi
+fi
 
 # --- 66. Args with embedded spaces survive the cron command ---
 # Regression guard for the $ARGS = "$ARGS $arg" word-splitting bug. A
