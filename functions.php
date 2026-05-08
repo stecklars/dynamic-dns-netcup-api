@@ -10,6 +10,18 @@ $providedIPv4 = null;
 $providedIPv6 = null;
 $runtimeApiSessionId = null;
 
+// Honor the TZ env var explicitly. Some PHP builds (notably the alpine
+// php:8-cli image shipped by upstream) bake date.timezone=UTC in via
+// configure-time, which would otherwise override TZ. healthcheck.php
+// already does this in initializeTimezone(); update.php went through
+// functions.php's top-level code without any timezone setup, so the
+// startup banner and operational logs ignored TZ even when tzdata was
+// installed. Falls through silently if TZ is unset, empty, or invalid.
+$tzEnv = getenv('TZ');
+if (is_string($tzEnv) && $tzEnv !== '') {
+    @date_default_timezone_set($tzEnv);
+}
+
 //Check passed options
 $shortopts = "q4:6:c:vhf";
 $longopts = array(

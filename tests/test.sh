@@ -76,7 +76,7 @@
 #   63. Docker entrypoint — env-mode validation errors do not leak the offending value
 #   64. Docker compose — shipped docker-compose.yml (and env-var alternative) parses cleanly
 #   65. Docker entrypoint — TZ env var is forwarded into the cron command
-#   65a. PHP runtime — date() honors the TZ env var (catches missing tzdata in the image)
+#   65a. functions.php — TZ env var overrides a pinned date.timezone (e.g. alpine's compiled-in default)
 #   66. Docker entrypoint — args with embedded spaces survive the cron command
 #   67. Docker entrypoint — env-mode generated config files are mode 0600
 #
@@ -2370,33 +2370,27 @@ else
 fi
 rm -rf "$ENTRYPOINT_TMP"
 
-# --- 65a. PHP date() honors the TZ env var ---
-# Test 65 only verifies that the cron line carries TZ='…'. The other half
-# of the chain — that PHP itself respects the value when date() is called
-# — was silently broken in v6.0–v6.2 because the alpine base image
-# doesn't ship tzdata. We can't run the container here, but we can use
-# the host PHP as a proxy: if host PHP honors TZ, container PHP will too
-# once tzdata is in the image (verified by test 52a).
-#
-# Caveat: PHP's date.timezone ini setting takes precedence over TZ. On
-# hosts that pin it (e.g. some openSUSE / Debian /etc/php/.../php.ini
-# defaults), this test cannot tell whether TZ-handling itself works, so
-# we skip cleanly rather than report a false negative. The container is
-# unaffected because php:8-cli-alpine ships php.ini-production, which
-# leaves date.timezone unset.
+# --- 65a. functions.php overrides date.timezone to honor TZ env var ---
+# Some PHP builds — notably the upstream php:8-cli-alpine — compile in
+# date.timezone=UTC, which takes precedence over the TZ env var. The
+# script's top-level code in functions.php calls
+# date_default_timezone_set(getenv('TZ')) to override that pin. We
+# verify the override here by running PHP with an explicit
+# `-d date.timezone=UTC` (simulating alpine's bake-in) and TZ set to
+# something else — if the override is missing or broken, PHP would stay
+# on UTC and the assertion fails.
 echo ""
-echo "  --- 65a. PHP date() honors TZ env var ---"
-host_tz_ini=$(php -r 'echo ini_get("date.timezone");' 2>/dev/null)
-if [ -n "$host_tz_ini" ]; then
-    skip "host php.ini pins date.timezone='$host_tz_ini' which overrides TZ env; cannot verify TZ-handling on this host (the container is unaffected — see test 52a + Alpine's php.ini-production)"
+echo "  --- 65a. functions.php overrides date.timezone to honor TZ ---"
+tz_default=$(TZ=Europe/Berlin php -d date.timezone=UTC -- -c "$UNIT_CONFIG" -q <<INNEREOF 2>/dev/null
+<?php
+require '$PROJECT_DIR/functions.php';
+echo date_default_timezone_get();
+INNEREOF
+)
+if [ "$tz_default" = "Europe/Berlin" ]; then
+    pass "functions.php applies TZ env even with date.timezone pinned (got '$tz_default')"
 else
-    ts_berlin=$(TZ=Europe/Berlin php -r 'echo date("O");' 2>/dev/null)
-    ts_utc=$(TZ=UTC php -r 'echo date("O");' 2>/dev/null)
-    if [ -n "$ts_berlin" ] && [ -n "$ts_utc" ] && [ "$ts_berlin" != "$ts_utc" ]; then
-        pass "PHP date() respects TZ ('$ts_berlin' for Europe/Berlin vs '$ts_utc' for UTC)"
-    else
-        fail "PHP date() respects TZ (Berlin='$ts_berlin', UTC='$ts_utc')"
-    fi
+    fail "functions.php applies TZ env even with date.timezone pinned (got '$tz_default')"
 fi
 
 # --- 66. Args with embedded spaces survive the cron command ---
