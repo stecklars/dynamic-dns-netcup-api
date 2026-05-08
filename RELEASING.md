@@ -41,7 +41,7 @@ docker run --rm \
 
 For each: confirm the run logs `Logged in successfully`, the expected `IPvN address has changed` or `hasn't changed`, `Logged out successfully`, and **no `PHP Warning` or `PHP Fatal` lines**. Then check the netcup CCP and verify the record actually has the IP the script reported.
 
-Also run a short cron-mode start-up against the same `TZ` to catch a class of bug the suite cannot — host PHP `date.timezone` pinning means the structural test can only check that the Dockerfile installs `tzdata`, not that the runtime actually honors `TZ`:
+Also run a short cron-mode start-up against the same `TZ` as an end-to-end gut check. Tests 52a (Dockerfile installs `tzdata`) and 65a (PHP code overrides a pinned `date.timezone`) cover the *intent* of both layers; this verifies the *built artifact* behaves accordingly — that the `tzdata` package actually made it into the layer, that an upstream `php:8-cli-alpine` change didn't slip a new default through, and that nothing in the runtime stack quietly swallows `TZ`:
 
 ```bash
 docker run -d --rm --name dyndns-tz-check \
@@ -53,7 +53,7 @@ docker logs dyndns-tz-check | head -5
 docker stop dyndns-tz-check
 ```
 
-The startup `[YYYY/MM/DD HH:MM:SS ±HHMM]` line should show your `TZ`'s offset (e.g. `+0200` for Europe/Berlin in summer), not `+0000`. If it shows `+0000`, the image is missing `tzdata` or `date.timezone` is pinned in the container's php.ini.
+The startup `[YYYY/MM/DD HH:MM:SS ±HHMM]` line should show your `TZ`'s offset (e.g. `+0200` for Europe/Berlin in summer), not `+0000`. If it shows `+0000`, run tests 52a and 65a locally — one of them is now failing and will tell you which layer broke.
 
 ## 3. Tag and push
 
