@@ -68,7 +68,7 @@
 #   55. Docker entrypoint — env-mode accepts boolean variants (true/yes/1/on, false/no/0/off)
 #   56. Docker entrypoint — env-mode rejects invalid boolean and non-numeric values
 #   57. Docker entrypoint — env-mode escapes special characters in string values
-#   58. Docker entrypoint — env-mode applies optional URL/numeric overrides
+#   58. Docker entrypoint — env-mode applies optional URL/numeric/interface overrides
 #   59. Docker entrypoint — env-mode omits unset optional values from generated config
 #   60. Docker entrypoint — env-mode mounted config.php takes precedence over env vars
 #   61. Docker entrypoint — env-mode generated config supports legacy/case-insensitive booleans
@@ -2066,7 +2066,7 @@ else
 fi
 rm -rf "$ENV_TMP"
 
-# --- 58. Env-mode applies optional URL/numeric overrides ---
+# --- 58. Env-mode applies optional URL/numeric/interface overrides ---
 echo ""
 echo "  --- 58. Env-mode applies optional overrides ---"
 ENV_TMP="$(mktemp -d)"
@@ -2084,10 +2084,11 @@ env -i \
     IPV4_ADDRESS_URL_FALLBACK="https://ip4-fallback.example.com" \
     IPV6_ADDRESS_URL="https://ip6.example.com" \
     IPV6_ADDRESS_URL_FALLBACK="https://ip6-fallback.example.com" \
+    CURL_INTERFACE="eth0" \
     RETRY_SLEEP=15 JITTER_MAX=7 \
     sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
-overrides=$(php -r "require '$ENV_APP/config.php'; echo APIURL.'|'.IPV4_ADDRESS_URL.'|'.IPV4_ADDRESS_URL_FALLBACK.'|'.IPV6_ADDRESS_URL.'|'.IPV6_ADDRESS_URL_FALLBACK.'|'.RETRY_SLEEP.'|'.JITTER_MAX;" 2>/dev/null)
-expected="https://api.example.com/dns|https://ip4.example.com|https://ip4-fallback.example.com|https://ip6.example.com|https://ip6-fallback.example.com|15|7"
+overrides=$(php -r "require '$ENV_APP/config.php'; echo APIURL.'|'.IPV4_ADDRESS_URL.'|'.IPV4_ADDRESS_URL_FALLBACK.'|'.IPV6_ADDRESS_URL.'|'.IPV6_ADDRESS_URL_FALLBACK.'|'.RETRY_SLEEP.'|'.JITTER_MAX.'|'.CURL_INTERFACE;" 2>/dev/null)
+expected="https://api.example.com/dns|https://ip4.example.com|https://ip4-fallback.example.com|https://ip6.example.com|https://ip6-fallback.example.com|15|7|eth0"
 if [ "$overrides" = "$expected" ]; then
     pass "all optional overrides applied to generated config"
 else
@@ -2117,7 +2118,7 @@ env -i \
     APP_DIR="$ENV_APP" \
     CUSTOMERNR=1 APIKEY=k APIPASSWORD=p DOMAINLIST="a.com: @" \
     sh "$PROJECT_DIR/docker-entrypoint.sh" --quiet > /dev/null 2>&1
-for opt in IPV4_ADDRESS_URL IPV4_ADDRESS_URL_FALLBACK IPV6_ADDRESS_URL IPV6_ADDRESS_URL_FALLBACK RETRY_SLEEP JITTER_MAX; do
+for opt in IPV4_ADDRESS_URL IPV4_ADDRESS_URL_FALLBACK IPV6_ADDRESS_URL IPV6_ADDRESS_URL_FALLBACK RETRY_SLEEP JITTER_MAX CURL_INTERFACE; do
     if grep -qF "define('$opt'" "$ENV_APP/config.php"; then
         fail "$opt should be omitted when not provided"
     else

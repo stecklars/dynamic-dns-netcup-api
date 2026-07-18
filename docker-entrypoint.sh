@@ -65,7 +65,7 @@ shell_quote() {
 # Generate $CONFIG_PATH from environment variables. Required: CUSTOMERNR,
 # APIKEY, APIPASSWORD, DOMAINLIST. Optional: USE_IPV4, USE_IPV6, CHANGE_TTL
 # (booleans), IPV4_ADDRESS_URL[_FALLBACK], IPV6_ADDRESS_URL[_FALLBACK],
-# RETRY_SLEEP, JITTER_MAX.
+# RETRY_SLEEP, JITTER_MAX, CURL_INTERFACE.
 generate_config_from_env() {
     missing=""
     [ -n "${CUSTOMERNR:-}" ] || missing="$missing CUSTOMERNR"
@@ -133,6 +133,9 @@ generate_config_from_env() {
         fi
         if [ -n "${JITTER_MAX:-}" ]; then
             echo "define('JITTER_MAX', $JITTER_MAX);"
+        fi
+        if [ -n "${CURL_INTERFACE:-}" ]; then
+            printf "define('CURL_INTERFACE', '%s');\n" "$(escape_php_single "$CURL_INTERFACE")"
         fi
     } > "$CONFIG_PATH"
 

@@ -80,3 +80,9 @@ define('JITTER_MAX', 30);
 
 // Use netcup DNS REST-API.
 define('APIURL', 'https://ccp.netcup.net/run/webservice/servers/endpoint.php?JSON');
+
+// Optional: Bind outbound cURL requests to a specific local interface or
+// source IP address (for example "eth0", "192.0.2.10", or "2001:db8::10").
+// Useful when running in multi-network container environments.
+// [Optional; leave undefined or empty to use the system's default routing.]
+// define('CURL_INTERFACE', 'eth0');

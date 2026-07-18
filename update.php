@@ -62,6 +62,10 @@ if (!defined('CACHE_FILE')) {
     define('CACHE_FILE', __DIR__ . '/cache.json');
 }
 
+if (!defined('CURL_INTERFACE')) {
+    define('CURL_INTERFACE', '');
+}
+
 if (USE_IPV4 === true) {
     // Get current IPv4 address
     if (!$publicIPv4 = getCurrentPublicIPv4()) {
