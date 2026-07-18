@@ -24,6 +24,7 @@
 * If configured, lowers TTL to 300 seconds for the domain on each run, if necessary
 * Caching: After a successful run, the current IP is cached locally. On subsequent runs, the DNS API is skipped entirely if the IP hasn't changed. Use `--force` to bypass the cache.
 * Jitter: A random delay (1–30 seconds by default) is applied before API calls to spread load when many users run the script via cron at the same time. Configurable via `JITTER_MAX` in config.
+* Optional source binding for outbound cURL requests via interface or source IP (`CURL_INTERFACE`), useful for multi-network/container setups
 * Hiding output (quiet option)
 
 ## Getting started
@@ -154,8 +155,11 @@ docker run -d --name dyndns \
 | IPV6_ADDRESS_URL_FALLBACK      | no       | `https://v6.ident.me`         | Fallback IPv6 lookup URL                                   |
 | RETRY_SLEEP                    | no       | `30`                          | Seconds to wait between retries                            |
 | JITTER_MAX                     | no       | `30`                          | Max random delay before API calls (`0` to disable)         |
+| CURL_INTERFACE                 | no       | —                             | Bind outbound cURL traffic to a local interface or source IP (e.g. `eth0`, `192.0.2.10`) |
 
 Booleans accept `true` / `false` / `1` / `0` / `yes` / `no` / `on` / `off` (case-insensitive). Verify your env-var configuration in one-shot mode before going into cron mode:
+
+If `CURL_INTERFACE` is unset or empty, normal system routing is used.
 
 ```bash
 docker run --rm \

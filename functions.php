@@ -98,6 +98,26 @@ function _is_curl_installed()
     }
 }
 
+// Returns a configured source interface / source IP for cURL, or null if not set.
+function getCurlInterfaceBinding()
+{
+    if (!defined('CURL_INTERFACE')) {
+        return null;
+    }
+
+    if (!is_string(CURL_INTERFACE)) {
+        outputWarning('CURL_INTERFACE is defined but is not a string. Ignoring this option.');
+        return null;
+    }
+
+    $interface = trim(CURL_INTERFACE);
+    if ($interface === '') {
+        return null;
+    }
+
+    return $interface;
+}
+
 // Create cURL handler for posting to the netcup CCP API
 function initializeCurlHandlerPostNetcupAPI($request)
 {
@@ -111,6 +131,12 @@ function initializeCurlHandlerPostNetcupAPI($request)
         CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
         CURLOPT_POSTFIELDS => $request,
     );
+
+    $curlInterface = getCurlInterfaceBinding();
+    if ($curlInterface !== null) {
+        $curlOptions[CURLOPT_INTERFACE] = $curlInterface;
+    }
+
     curl_setopt_array($ch, $curlOptions);
     return $ch;
 }
@@ -129,6 +155,12 @@ function initializeCurlHandlerGetIP($url, $ipResolve = CURL_IPRESOLVE_WHATEVER)
         CURLOPT_FAILONERROR => 1,
         CURLOPT_IPRESOLVE => $ipResolve
     );
+
+    $curlInterface = getCurlInterfaceBinding();
+    if ($curlInterface !== null) {
+        $curlOptions[CURLOPT_INTERFACE] = $curlInterface;
+    }
+
     curl_setopt_array($ch, $curlOptions);
     return $ch;
 }
