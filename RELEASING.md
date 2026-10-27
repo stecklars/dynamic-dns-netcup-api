@@ -101,6 +101,16 @@ docker compose up -d
 
 Mark the new release as a **pre-release** in the GitHub UI so users on `:latest` aren't pulled forward, and open an issue describing what broke.
 
+## Rebuilding an image for a base-image security fix
+
+The Dockerfile uses the floating `php:8-cli-alpine` tag, but images are only rebuilt when the publish workflow runs. When PHP or Alpine ship a security release (e.g. php2shell, issue #45), prefer cutting a patch release: it notifies users and gives them a clear version to upgrade to. When a new version isn't worth it, or users pinned to an older tag also need the fix, rebuild the existing release instead:
+
+1. Wait until Docker Hub's `php:8-cli-alpine` points to the patched PHP (its digest matches the fixed `8.x.y-cli-alpine` tag).
+2. Run the workflow by hand: `gh workflow run docker-publish.yml -f tag=v<current> -f latest=true` (or **Actions → Publish Docker image → Run workflow**). Set `latest=false` when rebuilding a tag that is not the newest release.
+3. Check the result: `docker run --rm --entrypoint php stecklars/dynamic-dns-netcup-api:v<current> -v` should report the patched PHP version.
+
+The workflow checks out the given tag, runs the test suite, and pushes a fresh build (`pull: true`, `no-cache: true`) under the same tags. Because the application code is unchanged, there's no new version and no smoke test. The smoke test is still a good idea if the PHP minor version changed (e.g. 8.4 → 8.5).
+
 ## What this checklist intentionally does NOT do
 
 - No `CHANGELOG.md` format — release notes live in the GitHub release body, lifted from `git log`.

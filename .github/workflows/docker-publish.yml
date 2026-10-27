@@ -3,12 +3,29 @@ name: Publish Docker image
 on:
   release:
     types: [published]
+  # Manual rebuild of an existing release, e.g. to pick up a patched
+  # php:8-cli-alpine base image after a PHP security release (issue #45).
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to rebuild (e.g. v7.0.0)'
+        required: true
+      latest:
+        description: 'Also push as :latest (only if this is the newest release)'
+        type: boolean
+        default: true
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  PUSH_LATEST: ${{ github.event_name == 'release' || inputs.latest }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Install PHP with cURL
         uses: shivammathur/setup-php@v2
@@ -24,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: docker/setup-qemu-action@v3
 
@@ -38,7 +57,11 @@ jobs:
         with:
           context: .
           push: true
+          # Always fetch the current base image and rebuild every layer, so
+          # PHP/Alpine security fixes actually land in the published image.
+          pull: true
+          no-cache: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: |
-            stecklars/dynamic-dns-netcup-api:latest
-            stecklars/dynamic-dns-netcup-api:${{ github.event.release.tag_name }}
+            stecklars/dynamic-dns-netcup-api:${{ env.TAG }}
+            ${{ env.PUSH_LATEST == 'true' && 'stecklars/dynamic-dns-netcup-api:latest' || '' }}
