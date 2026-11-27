@@ -109,7 +109,7 @@ The Dockerfile uses the floating `php:8-cli-alpine` tag, but images are only reb
 2. Run the workflow by hand: `gh workflow run docker-publish.yml -f tag=v<current> -f latest=true` (or **Actions → Publish Docker image → Run workflow**). Set `latest=false` when rebuilding a tag that is not the newest release.
 3. Check the result: `docker run --rm --entrypoint php stecklars/dynamic-dns-netcup-api:v<current> -v` should report the patched PHP version.
 
-The workflow checks out the given tag, runs the test suite, and pushes a fresh build (`pull: true`, `no-cache: true`) under the same tags. Because the application code is unchanged, there's no new version and no smoke test. The smoke test is still a good idea if the PHP minor version changed (e.g. 8.4 → 8.5).
+The workflow checks out the given tag, runs the test suite, and pushes a fresh build (`pull: true`, `no-cache: true`) under the same tags. Because the application code is unchanged, there's no new version and no smoke test. The smoke test is still a good idea if the PHP minor version changed (e.g. 8.4 → 8.5). In that case, also bump `php-version` in `.github/workflows/test.yml` and `docker-publish.yml` so CI tests the PHP minor that the image ships.
 
 ## What this checklist intentionally does NOT do
 
