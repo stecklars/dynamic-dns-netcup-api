@@ -105,7 +105,7 @@ Mark the new release as a **pre-release** in the GitHub UI so users on `:latest`
 
 The Dockerfile uses the floating `php:8-cli-alpine` tag, but images are only rebuilt when the publish workflow runs. When PHP or Alpine ship a security release (e.g. php2shell, issue #45), prefer cutting a patch release: it notifies users and gives them a clear version to upgrade to. When a new version isn't worth it, or users pinned to an older tag also need the fix, rebuild the existing release instead:
 
-1. Wait until Docker Hub's `php:8-cli-alpine` points to the patched PHP (its digest matches the fixed `8.x.y-cli-alpine` tag).
+1. Wait until Docker Hub's `php:8-cli-alpine` points to the patched PHP: `docker pull php:8-cli-alpine && docker run --rm php:8-cli-alpine php -v`. Don't compare the tag's digest with the fixed `8.x.y-cli-alpine` tag. The two indexes can list different platforms and so have different digests even when the per-platform images are identical.
 2. Run the workflow by hand: `gh workflow run docker-publish.yml -f tag=v<current> -f latest=true` (or **Actions → Publish Docker image → Run workflow**). Set `latest=false` when rebuilding a tag that is not the newest release.
 3. Check the result: `docker run --rm --entrypoint php stecklars/dynamic-dns-netcup-api:v<current> -v` should report the patched PHP version.
 
